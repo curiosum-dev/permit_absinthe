@@ -34,24 +34,18 @@ be found at <https://hexdocs.pm/permit_absinthe>.
 In your Absinthe schema, define metadata that maps your GraphQL types to Ecto schemas:
 
 ```elixir
+use Permit.Absinthe, authorization_module: MyApp.Authorization
+
 object :post do
-  meta :permit, schema: MyApp.Blog.Post
+  # Equivalent under the hood to:
+  #
+  #   meta permit: [schema: MyApp.Blog.Post], authorization_module: MyApp.Authorization
+  #
+  permit schema: MyApp.Blog.Post
 
   field :id, :id
   field :title, :string
   field :content, :string
-end
-```
-
-Alternatively, you can use the helper function (it's just syntactic sugar that does the same thing):
-
-```elixir
-import Permit.Absinthe
-
-object :post do
-  permit schema: MyApp.Blog.Post
-
-  # fields...
 end
 ```
 
@@ -111,6 +105,46 @@ field :post_by_slug, :post do
   permit action: :read, id_param_name: :slug, id_struct_field_name: :slug
   resolve &load_and_authorize_one/3
 end
+```
+
+### Load & Authorize Using Middleware
+
+Alternatively, if custom and more complex resolution logic needs to be used, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
+
+```elixir
+    @desc "Get all articles"
+    field :articles, list_of(:article) do
+      permit action: :read
+
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :all
+
+      resolve(fn _parent, _args, %{context: context} = _resolution ->
+        # ...
+        {:ok, context.loaded_resources}
+      end)
+
+      # This would be equivalent:
+      #
+      # resolve &load_and_authorize_all/3
+    end
+
+    @desc "Get a specific article by ID"
+    field :article, :article do
+      permit action: :read
+
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :one
+
+      arg :id, non_null(:id)
+
+      resolve(fn _parent, _args, %{context: context} = _resolution ->
+        {:ok, context.loaded_resource}
+      end)
+
+      # This would be equivalent:
+      #
+      # resolve &load_and_authorize_one/3
+    end
+
 ```
 
 ### Custom Resolvers with Authorization
