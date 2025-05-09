@@ -109,9 +109,10 @@ end
 
 ### Load & Authorize Using Middleware
 
-Alternatively, if custom and more complex resolution logic needs to be used, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
+In mutations, or whenever  custom and more complex resolution logic needs to be used, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
 
 ```elixir
+  query do
     @desc "Get all articles"
     field :articles, list_of(:article) do
       permit action: :read
@@ -144,10 +145,33 @@ Alternatively, if custom and more complex resolution logic needs to be used, the
       #
       # resolve &load_and_authorize_one/3
     end
+  end
 
+  mutation do
+    @desc "Update an article"
+    field :update_article, :article do
+      permit action: :update
+
+      arg(:id, non_null(:id))
+      arg(:name, non_null(:string))
+      arg(:content, non_null(:string))
+
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :one
+
+      resolve(fn _, %{name: name, content: content}, %{context: context} ->
+        case Blog.Content.update_article(context.loaded_resource, %{name: name, content: content}) do
+          {:ok, article} ->
+            {:ok, article}
+
+          {:error, changeset} ->
+            {:error, "Could not update article: #{inspect(changeset)}"}
+        end
+      end)
+    end
+  end
 ```
 
-### Custom Resolvers with Authorization
+### Custom Resolvers with Vanilla Permit Authorization
 
 For more complex authorization scenarios, you can implement custom resolvers using vanilla Permit syntax:
 
