@@ -1,7 +1,7 @@
 defmodule Permit.Absinthe do
   use Absinthe.Schema.Notation
 
-  alias Permit.Absinthe.Schema.Meta
+  alias Permit.Absinthe.Schema.{Helpers, Meta}
 
   @doc """
   Shorthand for adding the `permit` meta to the field. Most importantly, it allows specifying:
@@ -68,14 +68,18 @@ defmodule Permit.Absinthe do
     field_meta = Meta.get_field_meta_from_resolution(resolution, :permit)
 
     module = type_meta[:schema]
-    action = field_meta[:action]
+    action = field_meta[:action] || default_action(resolution)
 
     case authorization_module.resolver_module().resolve(
            resolution.context[:current_user],
            authorization_module,
            module,
            action,
-           %{params: args, resolution: resolution, base_query: &base_query/1},
+           %{
+             params: args,
+             resolution: resolution,
+             base_query: field_meta[:base_query] || (&base_query/1)
+           },
            arity
          ) do
       {:authorized, resource} ->
@@ -105,6 +109,18 @@ defmodule Permit.Absinthe do
 
       _ ->
         Permit.Ecto.from(resource_module)
+    end
+  end
+
+  defp default_action(resolution) do
+    if Helpers.mutation?(resolution) do
+      raise ArgumentError,
+            """
+            Authorization action must be specified for mutations - e.g.: `permit action: :create`.
+            For queries, `:read` is assumed by default.
+            """
+    else
+      :read
     end
   end
 
