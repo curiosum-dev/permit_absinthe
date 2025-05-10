@@ -45,8 +45,8 @@ defmodule Permit.Absinthe do
     end
     ```
   """
-  def load_and_authorize_one(authorization_module, parent, args, resolution) do
-    load_and_authorize(:one, authorization_module, parent, args, resolution)
+  def load_and_authorize_one(_parent, args, resolution) do
+    load_and_authorize(:one, args, resolution)
   end
 
   @doc """
@@ -62,39 +62,13 @@ defmodule Permit.Absinthe do
     end
     ```
   """
-  def load_and_authorize_all(authorization_module, parent, args, resolution) do
-    load_and_authorize(:all, authorization_module, parent, args, resolution)
+  def load_and_authorize_all(_parent, args, resolution) do
+    load_and_authorize(:all, args, resolution)
   end
 
-  defp load_and_authorize(arity, authorization_module, _parent, args, resolution)
+  defp load_and_authorize(arity, args, resolution)
        when arity in [:one, :all] do
-    type_meta = Meta.get_type_meta_from_resolution(resolution, :permit)
-    field_meta = Meta.get_field_meta_from_resolution(resolution, :permit)
-
-    module = type_meta[:schema]
-    action = field_meta[:action] || Helpers.default_action(resolution)
-
-    case authorization_module.resolver_module().resolve(
-           resolution.context[:current_user],
-           authorization_module,
-           module,
-           action,
-           %{
-             params: args,
-             resolution: resolution,
-             base_query: field_meta[:base_query] || (&Helpers.base_query/1)
-           },
-           arity
-         ) do
-      {:authorized, resource} ->
-        {:ok, resource}
-
-      :unauthorized ->
-        {:error, "Unauthorized"}
-
-      :not_found ->
-        {:error, "Not found"}
-    end
+    Permit.Absinthe.LoadAndAuthorize.load_and_authorize(args, resolution, arity)
   end
 
   defmacro __using__(opts) do
@@ -108,24 +82,6 @@ defmodule Permit.Absinthe do
 
     quote do
       import unquote(__MODULE__)
-
-      def load_and_authorize_one(parent, args, resolution) do
-        unquote(__MODULE__).load_and_authorize_one(
-          @authorization_module,
-          parent,
-          args,
-          resolution
-        )
-      end
-
-      def load_and_authorize_all(parent, args, resolution) do
-        unquote(__MODULE__).load_and_authorize_all(
-          @authorization_module,
-          parent,
-          args,
-          resolution
-        )
-      end
     end
   end
 end
