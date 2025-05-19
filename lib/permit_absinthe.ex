@@ -1,8 +1,6 @@
 defmodule Permit.Absinthe do
   use Absinthe.Schema.Notation
 
-  alias Permit.Absinthe.Schema.{Helpers, Meta}
-
   # @doc """
   # Adds Permit metadata to the field. Most importantly, it allows specifying:
   # - the Ecto schema (or resource struct) that a GraphQL type maps to,

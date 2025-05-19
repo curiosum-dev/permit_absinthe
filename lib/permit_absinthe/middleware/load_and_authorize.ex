@@ -35,8 +35,6 @@ defmodule Permit.Absinthe.Middleware.LoadAndAuthorize do
 
   @behaviour Absinthe.Middleware
 
-  alias Permit.Absinthe.Schema.{Helpers, Meta}
-
   @impl true
   def call(resolution, arity) when arity in [:one, :all] do
     case Permit.Absinthe.LoadAndAuthorize.load_and_authorize(

@@ -1,6 +1,6 @@
-# PermitAbsinthe
+# Permit.Absinthe
 
-PermitAbsinthe provides integration between the [Permit](https://hexdocs.pm/permit) authorization library and [Absinthe](https://hexdocs.pm/absinthe) GraphQL for Elixir.
+Permit.Absinthe provides integration between the [Permit](https://hexdocs.pm/permit) authorization library and [Absinthe](https://hexdocs.pm/absinthe) GraphQL for Elixir.
 
 ## Installation
 
@@ -67,7 +67,7 @@ end
 
 ### Using Authorization Resolvers
 
-PermitAbsinthe provides resolver functions to load and authorize resources automatically:
+Permit.Absinthe provides resolver functions to load and authorize resources automatically:
 
 ```elixir
 defmodule MyApp.Schema do
