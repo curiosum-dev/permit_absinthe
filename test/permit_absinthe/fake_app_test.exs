@@ -37,6 +37,20 @@ defmodule Permit.AbsintheFakeAppTest do
       assert result.data["item"]["id"] == "3"
     end
 
+    test "returns authorization error when user does not have access to item", %{
+      users: [_admin, owner, _inspector]
+    } do
+      assert {:ok, result} = TestHelpers.get_item(3, owner)
+      assert [%{message: "Unauthorized"}] = result.errors
+    end
+
+    test "returns not found error when item does not exist", %{
+      users: [admin, _, _]
+    } do
+      assert {:ok, result} = TestHelpers.get_item(4, admin)
+      assert [%{message: "Not found"}] = result.errors
+    end
+
     test "authorization rules are enforced for GraphQL queries", %{
       users: [_admin, owner, _inspector]
     } do
