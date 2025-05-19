@@ -69,5 +69,24 @@ defmodule Permit.AbsintheFakeApp.Schema do
         {:ok, new_item}
       end)
     end
+
+    field :update_item, :item do
+      arg(:id, non_null(:id))
+      arg(:permission_level, :integer)
+      arg(:thread_name, :string)
+
+      permit(action: :update)
+
+      middleware(
+        Permit.Absinthe.Middleware.LoadAndAuthorize,
+        :one
+      )
+
+      resolve(fn _,
+                 %{permission_level: permission_level, thread_name: thread_name},
+                 %{context: %{loaded_resource: item}} ->
+        {:ok, %{item | permission_level: permission_level, thread_name: thread_name}}
+      end)
+    end
   end
 end

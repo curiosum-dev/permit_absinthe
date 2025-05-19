@@ -88,4 +88,25 @@ defmodule Permit.AbsintheFakeApp.TestHelpers do
 
     query_gql(mutation, current_user: current_user, variables: variables)
   end
+
+  def update_item(attrs, current_user \\ nil) do
+    mutation = """
+    mutation UpdateItem($id: ID!, $permissionLevel: Int, $threadName: String) {
+      updateItem(id: $id, permission_level: $permissionLevel, thread_name: $threadName) {
+        id
+        permission_level
+        thread_name
+        owner_id
+      }
+    }
+    """
+
+    variables = %{
+      "id" => attrs[:id],
+      "permissionLevel" => attrs[:permission_level],
+      "threadName" => attrs[:thread_name]
+    }
+
+    query_gql(mutation, current_user: current_user, variables: variables)
+  end
 end
