@@ -1,7 +1,7 @@
 defmodule Permit.Absinthe.Schema.Prototype do
   use Absinthe.Schema.Prototype
 
-  directive :authorize do
+  directive :load_and_authorize do
     on([:field_definition, :object])
 
     description("Authorizes a field")

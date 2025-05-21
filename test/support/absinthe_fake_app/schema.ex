@@ -35,7 +35,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
       resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
-    field :items, list_of(:item), directives: [:authorize] do
+    field :items, list_of(:item), directives: [:load_and_authorize] do
       permit(action: :read)
 
       resolve(fn _, %{context: %{loaded_resources: items}} ->
