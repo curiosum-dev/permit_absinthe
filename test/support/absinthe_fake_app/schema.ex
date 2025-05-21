@@ -30,13 +30,13 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
       permit(action: :read)
 
-      resolve(&PermitAbsinthe.load_and_authorize_one/3)
+      resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
     field :items, list_of(:item) do
       permit(action: :read)
 
-      resolve(&PermitAbsinthe.load_and_authorize_all/3)
+      resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
     field :user, :user do
@@ -44,7 +44,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
       permit(action: :read)
 
-      resolve(&PermitAbsinthe.load_and_authorize_one/3)
+      resolve(&PermitAbsinthe.load_and_authorize/2)
     end
   end
 
@@ -77,10 +77,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
       permit(action: :update)
 
-      middleware(
-        Permit.Absinthe.Middleware.LoadAndAuthorize,
-        :one
-      )
+      middleware(Permit.Absinthe.Middleware.LoadAndAuthorize)
 
       resolve(fn _,
                  %{permission_level: permission_level, thread_name: thread_name},

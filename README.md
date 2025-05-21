@@ -85,11 +85,11 @@ defmodule MyApp.Schema do
   query do
     field :post, :post do
       arg :id, non_null(:id)
-      resolve &load_and_authorize_one/3
+      resolve &load_and_authorize/2
     end
 
     field :posts, list_of(:post) do
-      resolve &load_and_authorize_all/3
+      resolve &load_and_authorize/2
     end
   end
 
@@ -103,7 +103,7 @@ Custom id field names and parameters can be specified:
 field :post_by_slug, :post do
   arg :slug, non_null(:string)
   permit action: :read, id_param_name: :slug, id_struct_field_name: :slug
-  resolve &load_and_authorize_one/3
+  resolve &load_and_authorize/2
 end
 ```
 
@@ -126,7 +126,7 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
 
       # This would be equivalent:
       #
-      # resolve &load_and_authorize_all/3
+      # resolve &load_and_authorize/2
     end
 
     @desc "Get a specific article by ID"
@@ -143,7 +143,7 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
 
       # This would be equivalent:
       #
-      # resolve &load_and_authorize_one/3
+      # resolve &load_and_authorize/2
     end
   end
 

@@ -18,7 +18,12 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
       # As a resolver function
       field :post, :post do
         arg :id, non_null(:id)
-        resolve &load_and_authorize_one/3
+        resolve &load_and_authorize/2
+      end
+
+      # Resolver for a list of resources
+      field :posts, list_of(:post) do
+        resolve &load_and_authorize/2
       end
 
       # From a custom resolver
@@ -33,7 +38,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
         end
       end
   """
-  def load_and_authorize(args, resolution, arity) when arity in [:one, :all] do
+  def load_and_authorize(args, resolution) do
     type_meta = Meta.get_type_meta_from_resolution(resolution, :permit)
     field_meta = Meta.get_field_meta_from_resolution(resolution, :permit)
 
@@ -42,6 +47,12 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
 
     authorization_module =
       Meta.get_field_meta_from_resolution(resolution, :authorization_module)
+
+    arity =
+      case resolution.definition.schema_node.type do
+        %Absinthe.Type.List{} -> :all
+        _ -> :one
+      end
 
     case authorization_module.resolver_module().resolve(
            resolution.context[:current_user],
@@ -64,36 +75,5 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
       :not_found ->
         {:error, "Not found"}
     end
-  end
-
-  @doc """
-  Resolver function for loading and authorizing a single resource.
-
-  This function can be used directly as a resolver in Absinthe schema definitions.
-
-  ## Example
-
-      field :post, :post do
-        arg :id, non_null(:id)
-        resolve &load_and_authorize_one/3
-      end
-  """
-  def load_and_authorize_one(_parent, args, resolution) do
-    load_and_authorize(args, resolution, :one)
-  end
-
-  @doc """
-  Resolver function for loading and authorizing a list of resources.
-
-  This function can be used directly as a resolver in Absinthe schema definitions.
-
-  ## Example
-
-      field :posts, list_of(:post) do
-        resolve &load_and_authorize_all/3
-      end
-  """
-  def load_and_authorize_all(_parent, args, resolution) do
-    load_and_authorize(args, resolution, :all)
   end
 end

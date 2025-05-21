@@ -30,25 +30,22 @@ defmodule Permit.Absinthe do
     end
   end
 
-  @doc """
-  Absinthe resolver that loads and authorizes a single resource.
+  # @doc """
+  # Absinthe resolver that loads and authorizes a single resource.
 
-  ## Example
+  # ## Example
 
-    ```elixir
-    field :article, :article do
-      permit action: :show
+  #   ```elixir
+  #   field :article, :article do
+  #     permit action: :show
 
-      resolve &load_and_authorize_one/3
-    end
-    ```
-  """
-  def load_and_authorize_one(_parent, args, resolution) do
-    load_and_authorize(:one, args, resolution)
-  end
+  #     resolve &load_and_authorize/2
+  #   end
+  #   ```
+  # """
 
   @doc """
-  Absinthe resolver that loads and authorizes a list of resources.
+  Absinthe resolver that loads and authorizes a list of resources or a single resource.
 
   ## Example
 
@@ -56,18 +53,18 @@ defmodule Permit.Absinthe do
     field :articles, list_of(:article) do
       permit action: :index
 
-      resolve &load_and_authorize_all/3
+      resolve &load_and_authorize/2
+    end
+
+    field :article, :article do
+      permit action: :show
+
+      resolve &load_and_authorize/2
     end
     ```
   """
-  def load_and_authorize_all(_parent, args, resolution) do
-    load_and_authorize(:all, args, resolution)
-  end
 
-  defp load_and_authorize(arity, args, resolution)
-       when arity in [:one, :all] do
-    Permit.Absinthe.LoadAndAuthorize.load_and_authorize(args, resolution, arity)
-  end
+  defdelegate load_and_authorize(args, resolution), to: Permit.Absinthe.LoadAndAuthorize
 
   defmacro __using__(opts) do
     authorization_module = opts[:authorization_module]

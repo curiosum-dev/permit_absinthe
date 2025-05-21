@@ -36,17 +36,16 @@ defmodule Permit.Absinthe.Middleware.LoadAndAuthorize do
   @behaviour Absinthe.Middleware
 
   @impl true
-  def call(resolution, arity) when arity in [:one, :all] do
+  def call(resolution, _) do
     case Permit.Absinthe.LoadAndAuthorize.load_and_authorize(
            resolution.arguments,
-           resolution,
-           arity
+           resolution
          ) do
       {:ok, resource} ->
         key =
-          case arity do
-            :one -> :loaded_resource
-            :all -> :loaded_resources
+          case resource do
+            list when is_list(list) -> :loaded_resources
+            _ -> :loaded_resource
           end
 
         new_context = Map.put(resolution.context, key, resource)
