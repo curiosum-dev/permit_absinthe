@@ -2,6 +2,8 @@ defmodule Permit.AbsintheFakeApp.Schema do
   use Absinthe.Schema
   use Permit.Absinthe, authorization_module: Permit.AbsintheFakeApp.Authorization
 
+  @prototype_schema Permit.Absinthe.Schema.Prototype
+
   alias Permit.AbsintheFakeApp.{Item, User}
   alias Permit.Absinthe, as: PermitAbsinthe
 
@@ -33,10 +35,12 @@ defmodule Permit.AbsintheFakeApp.Schema do
       resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
-    field :items, list_of(:item) do
+    field :items, list_of(:item), directives: [:authorize] do
       permit(action: :read)
 
-      resolve(&PermitAbsinthe.load_and_authorize/2)
+      resolve(fn _, %{context: %{loaded_resources: items}} ->
+        {:ok, items}
+      end)
     end
 
     field :user, :user do

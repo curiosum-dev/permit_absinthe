@@ -59,6 +59,12 @@ defmodule Permit.AbsintheFakeAppTest do
                result.data["updateItem"]
     end
 
+    test "loads and authorizes items using directives", %{users: [_admin, owner, _inspector]} do
+      assert {:ok, result} = TestHelpers.get_items(owner)
+
+      assert [%{"id" => _}] = result.data["items"]
+    end
+
     test "returns authorization error when user does not have access to item via middleware", %{
       users: [_, owner, _]
     } do
