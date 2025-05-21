@@ -171,6 +171,28 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
   end
 ```
 
+### Using the Authorize Directive
+
+Permit.Absinthe provides an `:authorize` directive that can be used directly in your GraphQL schema to authorize resources at the field level. This approach is useful when you want declarative authorization rules applied to your queries:
+
+```elixir
+object :query do
+  field :items, list_of(:item) do
+    permit action: :read
+
+    # The authorize directive will automatically check permissions
+    # for the current user on each returned item
+    directive :authorize
+
+    resolve(fn _, %{context: %{loaded_resources: items}} ->
+      {:ok, items}
+    end)
+  end
+end
+```
+
+The `:authorize` directive works with both single resources and lists of resources, ensuring that only accessible items are returned to the client based on the permission rules defined in your authorization module.
+
 ### Custom Resolvers with Vanilla Permit Authorization
 
 For more complex authorization scenarios, you can implement custom resolvers using vanilla Permit syntax:
