@@ -26,6 +26,9 @@ be found at <https://hexdocs.pm/permit_absinthe>.
 - Map GraphQL types to Permit resource modules (Ecto schemas)
 - Automatically check permissions for queries and mutations
 - Resolvers for automatic resource loading and authorization
+- Authorization middleware for GraphQL fields
+- Load and authorize directives
+- **Optional automatic directive hydration** - automatically add authorization directives to all query/mutation fields
 
 ## Usage
 
@@ -210,6 +213,63 @@ defmodule MyApp.Resolvers.Post do
   end
 end
 ```
+
+## Optional Directive Hydration
+
+You can enable automatic directive hydration to add `@loadAndAuthorize` directives to all root query and mutation fields automatically:
+
+```elixir
+defmodule MyApp.Schema do
+  use Absinthe.Schema
+  use Permit.Absinthe,
+    authorization_module: MyApp.Authorization,
+    auto_load_and_authorize: true
+
+  query do
+    # These fields will automatically get @loadAndAuthorize directives
+    field :users, list_of(:user)
+    field :user, :user do
+      arg :id, non_null(:id)
+    end
+  end
+
+  mutation do
+    # This field will also automatically get the directive
+    field :create_user, :user do
+      arg :name, :string
+    end
+  end
+end
+```
+
+### Benefits
+
+- **Opt-in**: Only schemas with `auto_load_and_authorize: true` are affected
+- **Safe**: Won't add directives to fields that already have them or explicit middleware
+- **Selective**: Only affects root query/mutation fields, not nested object type fields
+- **Backward compatible**: Existing schemas without the option continue to work unchanged
+
+### How it works
+
+When you export your schema to SDL, you'll see:
+
+```graphql
+type RootQueryType {
+  users: [User] @loadAndAuthorize
+  user(id: ID!): User @loadAndAuthorize
+}
+
+type RootMutationType {
+  createUser(name: String): User @loadAndAuthorize
+}
+
+type User {
+  id: ID
+  name: String
+}
+```
+
+Notice that only the root query/mutation fields get the `@loadAndAuthorize` directive automatically. Object type fields like `User.id` and `User.name` are left unchanged.
 
 ## License
 
