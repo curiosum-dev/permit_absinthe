@@ -17,7 +17,7 @@ defmodule Permit.Absinthe.Middleware.LoadAndAuthorize do
         arg(:name, non_null(:string))
         arg(:content, non_null(:string))
 
-        middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :one
+        middleware Permit.Absinthe.Middleware.LoadAndAuthorize
 
         resolve(fn _, %{name: name, content: content}, %{context: context} ->
           case Blog.Content.update_article(context.loaded_resource, %{name: name, content: content}) do

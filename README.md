@@ -133,7 +133,7 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
     field :article, :article do
       permit action: :read
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :one
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
 
       arg :id, non_null(:id)
 
@@ -156,7 +156,7 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
       arg(:name, non_null(:string))
       arg(:content, non_null(:string))
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :one
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
 
       resolve(fn _, %{name: name, content: content}, %{context: context} ->
         case Blog.Content.update_article(context.loaded_resource, %{name: name, content: content}) do
@@ -173,23 +173,30 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
 
 ### Using the Authorize Directive
 
-Permit.Absinthe provides an `:load_and_authorize` directive that can be used directly in your GraphQL schema to load and authorize resources at the field level. This approach is useful when you want declarative authorization rules applied to your queries:
+
+Permit.Absinthe provides the `:load_and_authorize` directive to automatically load and authorize resources in your GraphQL fields.
+
+The most reliable way to add Permit directives to your schema is using the prototype schema:
 
 ```elixir
-object :query do
-  field :items, list_of(:item) do
-    permit action: :read
+defmodule MyAppWeb.Schema do
+  use Absinthe.Schema
 
-    # The authorize directive will automatically check permissions
-    # for the current user on each returned item
-    directive :load_and_authorize
+  @prototype_schema Permit.Absinthe.Schema.Prototype
 
-    resolve(fn _, %{context: %{loaded_resources: items}} ->
-      {:ok, items}
-    end)
+  # Your schema definition...
+
+  query do
+    field :items, list_of(:item), directives: [:load_and_authorize] do
+      permit(action: :read)
+
+      resolve(fn _, %{context: %{loaded_resources: items}} ->
+        {:ok, items}
+      end)
+    end
   end
 end
-```
+
 
 The `:load_and_authorize` directive works with both single resources and lists of resources, ensuring that only accessible items are returned to the client based on the permission rules defined in your authorization module.
 
@@ -214,4 +221,4 @@ end
 ## License
 
 MIT
-
+```
