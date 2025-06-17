@@ -21,12 +21,8 @@ defmodule Permit.AbsintheFakeApp.TestHelpers do
         user -> %{current_user: user}
       end
 
-    Absinthe.run(
-      query,
-      Schema,
-      variables: variables,
-      context: context
-    )
+    # Simple approach using Absinthe.run with context
+    Absinthe.run(query, Schema, context: context, variables: variables)
   end
 
   @doc """
@@ -58,6 +54,25 @@ defmodule Permit.AbsintheFakeApp.TestHelpers do
         permission_level
         thread_name
         owner_id
+      }
+    }
+    """
+
+    query_gql(query, current_user: current_user)
+  end
+
+  @doc """
+  Gets current user information with nested items via Dataloader.
+  """
+  def get_me(current_user) do
+    query = """
+    query GetMe {
+      me {
+        id
+        items {
+          id
+          owner_id
+        }
       }
     }
     """

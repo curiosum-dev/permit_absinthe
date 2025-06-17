@@ -13,6 +13,8 @@ defmodule Permit.AbsintheFakeApp.Schema do
     field(:roles, list_of(:string))
     field(:permission_level, :integer)
 
+    field(:items, list_of(:item), resolve: &authorized_dataloader/3)
+
     permit(schema: User)
   end
 
@@ -49,6 +51,16 @@ defmodule Permit.AbsintheFakeApp.Schema do
       permit(action: :read)
 
       resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :me, :user do
+      middleware(Permit.Absinthe.Middleware.DataloaderSetup)
+
+      permit(action: :read)
+
+      resolve(fn _, _, %{context: %{current_user: current_user}} ->
+        {:ok, current_user}
+      end)
     end
   end
 
@@ -89,5 +101,9 @@ defmodule Permit.AbsintheFakeApp.Schema do
         {:ok, %{item | permission_level: permission_level, thread_name: thread_name}}
       end)
     end
+  end
+
+  def plugins do
+    [Absinthe.Middleware.Dataloader | Absinthe.Plugin.defaults()]
   end
 end

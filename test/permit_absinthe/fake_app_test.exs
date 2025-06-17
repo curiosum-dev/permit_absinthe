@@ -1,7 +1,7 @@
 defmodule Permit.AbsintheFakeAppTest do
   use ExUnit.Case
 
-  alias Permit.AbsintheFakeApp.{Repo, Setup, TestHelpers}
+  alias Permit.AbsintheFakeApp.{Item, Repo, Setup, TestHelpers}
 
   setup_all do
     # Setup the test database
@@ -87,12 +87,17 @@ defmodule Permit.AbsintheFakeAppTest do
       users: [_admin, owner, _inspector]
     } do
       # Owner can only read owned items, and should be denied access to other items
-      assert {:ok, result} = TestHelpers.get_item(1, owner)
-      assert result.errors != nil
+      assert {:ok, result} = TestHelpers.get_me(owner)
 
-      # Owner should be able to access their own item
-      assert {:ok, result} = TestHelpers.get_item(2, owner)
-      assert result.data["item"]["id"] == "2"
+      owner_id = Integer.to_string(owner.id)
+
+      assert [%{"owner_id" => ^owner_id}] = result.data["me"]["items"]
+    end
+
+    test "authorization rules are enforced in dataloader fields", %{
+      users: [_admin, owner, _inspector]
+    } do
+      {:ok, result} = TestHelpers.get_items(owner)
     end
   end
 end
