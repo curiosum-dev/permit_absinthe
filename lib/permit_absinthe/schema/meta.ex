@@ -36,4 +36,11 @@ defmodule Permit.Absinthe.Schema.Meta do
   def get_field_meta_from_resolution(resolution, meta_key) when is_atom(meta_key) do
     get_field_meta_from_resolution(resolution, [meta_key])
   end
+
+  def get_type_name(resolution) do
+    case resolution.definition.schema_node.type do
+      %{of_type: inner_type} -> inner_type
+      other -> other
+    end
+  end
 end

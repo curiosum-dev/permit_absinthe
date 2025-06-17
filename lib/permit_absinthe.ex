@@ -64,7 +64,10 @@ defmodule Permit.Absinthe do
     ```
   """
 
-  defdelegate load_and_authorize(args, resolution), to: Permit.Absinthe.LoadAndAuthorize
+  defdelegate load_and_authorize(args, resolution), to: Permit.Absinthe.Resolvers.LoadAndAuthorize
+
+  defdelegate authorized_dataloader(parent, args, resolution),
+    to: Permit.Absinthe.Resolvers.Dataloader
 
   defmacro __using__(opts) do
     authorization_module = opts[:authorization_module]

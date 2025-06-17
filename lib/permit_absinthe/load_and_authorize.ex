@@ -8,10 +8,8 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
 
   ## Parameters
 
-  * `parent` - The parent object in the GraphQL resolution
   * `args` - The arguments passed to the field
   * `resolution` - The Absinthe resolution struct
-  * `arity` - Either `:one` or `:all` to indicate whether to load a single resource or a list
 
   ## Examples
 
