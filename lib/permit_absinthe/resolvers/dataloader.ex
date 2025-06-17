@@ -4,6 +4,12 @@ defmodule Permit.Absinthe.Resolvers.Dataloader do
   def authorized_dataloader(parent, args, resolution) do
     parent_name = (resolution.path |> Enum.reverse() |> Enum.drop(1) |> List.first()).name
 
-    dataloader("Blog.Authorization:#{parent_name}:read").(parent, args, resolution)
+    authorization_module =
+      Permit.Absinthe.Schema.Meta.get_type_meta_from_resolution(
+        resolution,
+        :authorization_module
+      )
+
+    dataloader("#{inspect(authorization_module)}:#{parent_name}:read").(parent, args, resolution)
   end
 end
