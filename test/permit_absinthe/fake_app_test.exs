@@ -1,7 +1,7 @@
 defmodule Permit.AbsintheFakeAppTest do
   use ExUnit.Case
 
-  alias Permit.AbsintheFakeApp.{Item, Repo, Setup, TestHelpers}
+  alias Permit.AbsintheFakeApp.{Repo, Setup, TestHelpers}
 
   setup_all do
     # Setup the test database
@@ -97,7 +97,16 @@ defmodule Permit.AbsintheFakeAppTest do
     test "authorization rules are enforced in dataloader fields", %{
       users: [_admin, owner, _inspector]
     } do
-      {:ok, result} = TestHelpers.get_items(owner)
+      {:ok, result} = TestHelpers.get_me(owner)
+
+      items = result[:data]["me"]["items"]
+      subitems = Enum.at(items, 0)["subitems"]
+
+      assert Enum.count(items) > 0
+      assert Enum.all?(items, &(String.to_integer(&1["owner_id"]) == owner.id))
+
+      assert Enum.count(subitems) == 1
+      assert Enum.at(subitems, 0)["name"] == "subitem 3"
     end
   end
 end

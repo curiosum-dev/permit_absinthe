@@ -72,6 +72,11 @@ defmodule Permit.AbsintheFakeApp.TestHelpers do
         items {
           id
           owner_id
+          subitems {
+            id
+            item_id
+            name
+          }
         }
       }
     }

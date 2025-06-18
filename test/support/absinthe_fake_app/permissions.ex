@@ -2,6 +2,7 @@ defmodule Permit.AbsintheFakeApp.Permissions do
   use Permit.Ecto.Permissions, actions_module: Permit.AbsintheFakeApp.Actions
 
   alias Permit.AbsintheFakeApp.Item
+  alias Permit.AbsintheFakeApp.Subitem
   alias Permit.AbsintheFakeApp.User
 
   def can(%User{roles: roles} = user) do
@@ -17,9 +18,10 @@ defmodule Permit.AbsintheFakeApp.Permissions do
     |> all(Item)
   end
 
-  def can(_user, "owner") do
+  def can(user, "owner") do
     permit()
-    |> all(Item, [user, item], owner_id: user.id)
+    |> all(Item, owner_id: user.id)
+    |> all(Subitem, name: "subitem 3", item: [owner_id: user.id])
   end
 
   def can(_user, "inspector") do

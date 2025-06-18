@@ -4,7 +4,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
   @prototype_schema Permit.Absinthe.Schema.Prototype
 
-  alias Permit.AbsintheFakeApp.{Item, User}
+  alias Permit.AbsintheFakeApp.{Item, Subitem, User}
   alias Permit.Absinthe, as: PermitAbsinthe
 
   # Custom types
@@ -18,11 +18,21 @@ defmodule Permit.AbsintheFakeApp.Schema do
     permit(schema: User)
   end
 
+  object :subitem do
+    field(:id, :id)
+    field(:name, :string)
+    field(:item_id, :id)
+
+    permit(schema: Subitem)
+  end
+
   object :item do
     field(:id, :id)
     field(:permission_level, :integer)
     field(:thread_name, :string)
     field(:owner_id, :id)
+
+    field(:subitems, list_of(:subitem), resolve: &authorized_dataloader/3)
 
     permit(schema: Item)
   end
@@ -30,6 +40,14 @@ defmodule Permit.AbsintheFakeApp.Schema do
   # Queries
   query do
     field :item, :item do
+      arg(:id, non_null(:id))
+
+      permit(action: :read)
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :subitem, :subitem do
       arg(:id, non_null(:id))
 
       permit(action: :read)

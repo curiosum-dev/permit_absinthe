@@ -19,5 +19,12 @@ defmodule Permit.AbsintheFakeApp.Migrations do
 
       timestamps()
     end
+
+    create table(:subitems) do
+      add(:name, :string)
+      add(:item_id, references(:items))
+
+      timestamps()
+    end
   end
 end
