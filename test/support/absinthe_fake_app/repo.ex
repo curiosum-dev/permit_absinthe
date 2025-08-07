@@ -13,9 +13,11 @@ defmodule Permit.AbsintheFakeApp.Repo do
     ]
 
     items = [
-      %Item{id: 1, owner_id: 1, permission_level: 1} |> Repo.insert!(),
+      %Item{id: 1, owner_id: 1, permission_level: 1, thread_name: "admin-thread"}
+      |> Repo.insert!(),
       %Item{id: 2, owner_id: 2, permission_level: 2, thread_name: "dmt"} |> Repo.insert!(),
-      %Item{id: 3, owner_id: 3, permission_level: 3} |> Repo.insert!()
+      %Item{id: 3, owner_id: 3, permission_level: 3, thread_name: "inspector-thread"}
+      |> Repo.insert!()
     ]
 
     subitems = [

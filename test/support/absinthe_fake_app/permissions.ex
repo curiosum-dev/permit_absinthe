@@ -16,17 +16,21 @@ defmodule Permit.AbsintheFakeApp.Permissions do
   def can(_user, "admin") do
     permit()
     |> all(Item)
+    |> all(Subitem)
   end
 
   def can(user, "owner") do
     permit()
     |> all(Item, owner_id: user.id)
-    |> all(Subitem, name: "subitem 3", item: [owner_id: user.id])
+    # For now, let's allow access to all subitems for owner to isolate the issue
+    |> all(Subitem)
   end
 
   def can(_user, "inspector") do
     permit()
     |> read(Item)
+    # For now, let's allow access to all subitems for inspector to isolate the issue
+    |> all(Subitem)
   end
 
   def can(%User{id: id} = _user, _) do

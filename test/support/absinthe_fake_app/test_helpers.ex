@@ -44,6 +44,41 @@ defmodule Permit.AbsintheFakeApp.TestHelpers do
   end
 
   @doc """
+  Gets a specific item by thread_name through a GraphQL query using custom ID parameters.
+  """
+  def get_item_by_thread_name(thread_name, current_user \\ nil) do
+    query = """
+    query GetItemByThreadName($threadName: String!) {
+      itemByThreadName(thread_name: $threadName) {
+        id
+        permission_level
+        thread_name
+        owner_id
+      }
+    }
+    """
+
+    query_gql(query, current_user: current_user, variables: %{"threadName" => thread_name})
+  end
+
+  @doc """
+  Gets a specific subitem by name through a GraphQL query using custom ID parameters.
+  """
+  def get_subitem_by_name(name, current_user \\ nil) do
+    query = """
+    query GetSubitemByName($name: String!) {
+      subitemByName(name: $name) {
+        id
+        name
+        item_id
+      }
+    }
+    """
+
+    query_gql(query, current_user: current_user, variables: %{"name" => name})
+  end
+
+  @doc """
   Gets all items through a GraphQL query.
   """
   def get_items(current_user \\ nil) do

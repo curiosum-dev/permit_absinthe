@@ -47,10 +47,26 @@ defmodule Permit.AbsintheFakeApp.Schema do
       resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
+    field :item_by_thread_name, :item do
+      arg(:thread_name, non_null(:string))
+
+      permit(action: :read, id_param_name: :thread_name, id_struct_field_name: :thread_name)
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
     field :subitem, :subitem do
       arg(:id, non_null(:id))
 
       permit(action: :read)
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :subitem_by_name, :subitem do
+      arg(:name, non_null(:string))
+
+      permit(action: :read, id_param_name: :name, id_struct_field_name: :name)
 
       resolve(&PermitAbsinthe.load_and_authorize/2)
     end
