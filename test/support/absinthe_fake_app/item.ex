@@ -7,6 +7,7 @@ defmodule Permit.AbsintheFakeApp.Item do
     field(:thread_name, :string)
 
     belongs_to(:user, Permit.AbsintheFakeApp.User, foreign_key: :owner_id)
+    has_many(:subitems, Permit.AbsintheFakeApp.Subitem, foreign_key: :item_id)
 
     timestamps()
   end

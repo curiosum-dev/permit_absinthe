@@ -6,7 +6,7 @@ defmodule Permit.AbsintheFakeApp.User do
     field(:permission_level, :integer)
     field(:roles, {:array, :string})
 
-    has_many(:item, Permit.AbsintheFakeApp.Item, foreign_key: :owner_id)
+    has_many(:items, Permit.AbsintheFakeApp.Item, foreign_key: :owner_id)
 
     timestamps()
   end

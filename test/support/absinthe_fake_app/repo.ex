@@ -3,7 +3,7 @@ defmodule Permit.AbsintheFakeApp.Repo do
     otp_app: :permit_absinthe,
     adapter: Ecto.Adapters.Postgres
 
-  alias Permit.AbsintheFakeApp.{Item, Repo, User}
+  alias Permit.AbsintheFakeApp.{Item, Repo, Subitem, User}
 
   def seed_data! do
     users = [
@@ -18,6 +18,15 @@ defmodule Permit.AbsintheFakeApp.Repo do
       %Item{id: 3, owner_id: 3, permission_level: 3} |> Repo.insert!()
     ]
 
-    %{users: users, items: items}
+    subitems = [
+      %Subitem{id: 1, item_id: 1, name: "subitem 1"} |> Repo.insert!(),
+      %Subitem{id: 2, item_id: 1, name: "subitem 2"} |> Repo.insert!(),
+      %Subitem{id: 3, item_id: 2, name: "subitem 3"} |> Repo.insert!(),
+      %Subitem{id: 4, item_id: 2, name: "subitem 4"} |> Repo.insert!(),
+      %Subitem{id: 5, item_id: 3, name: "subitem 5"} |> Repo.insert!(),
+      %Subitem{id: 6, item_id: 3, name: "subitem 6"} |> Repo.insert!()
+    ]
+
+    %{users: users, items: items, subitems: subitems}
   end
 end

@@ -4,7 +4,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
   @prototype_schema Permit.Absinthe.Schema.Prototype
 
-  alias Permit.AbsintheFakeApp.{Item, User}
+  alias Permit.AbsintheFakeApp.{Item, Subitem, User}
   alias Permit.Absinthe, as: PermitAbsinthe
 
   # Custom types
@@ -13,7 +13,17 @@ defmodule Permit.AbsintheFakeApp.Schema do
     field(:roles, list_of(:string))
     field(:permission_level, :integer)
 
+    field(:items, list_of(:item), resolve: &authorized_dataloader/3)
+
     permit(schema: User)
+  end
+
+  object :subitem do
+    field(:id, :id)
+    field(:name, :string)
+    field(:item_id, :id)
+
+    permit(schema: Subitem)
   end
 
   object :item do
@@ -22,12 +32,22 @@ defmodule Permit.AbsintheFakeApp.Schema do
     field(:thread_name, :string)
     field(:owner_id, :id)
 
+    field(:subitems, list_of(:subitem), resolve: &authorized_dataloader/3)
+
     permit(schema: Item)
   end
 
   # Queries
   query do
     field :item, :item do
+      arg(:id, non_null(:id))
+
+      permit(action: :read)
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :subitem, :subitem do
       arg(:id, non_null(:id))
 
       permit(action: :read)
@@ -49,6 +69,16 @@ defmodule Permit.AbsintheFakeApp.Schema do
       permit(action: :read)
 
       resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :me, :user do
+      middleware(Permit.Absinthe.Middleware.DataloaderSetup)
+
+      permit(action: :read)
+
+      resolve(fn _, _, %{context: %{current_user: current_user}} ->
+        {:ok, current_user}
+      end)
     end
   end
 
@@ -89,5 +119,9 @@ defmodule Permit.AbsintheFakeApp.Schema do
         {:ok, %{item | permission_level: permission_level, thread_name: thread_name}}
       end)
     end
+  end
+
+  def plugins do
+    [Absinthe.Middleware.Dataloader | Absinthe.Plugin.defaults()]
   end
 end

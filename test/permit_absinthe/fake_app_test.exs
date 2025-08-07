@@ -87,12 +87,26 @@ defmodule Permit.AbsintheFakeAppTest do
       users: [_admin, owner, _inspector]
     } do
       # Owner can only read owned items, and should be denied access to other items
-      assert {:ok, result} = TestHelpers.get_item(1, owner)
-      assert result.errors != nil
+      assert {:ok, result} = TestHelpers.get_me(owner)
 
-      # Owner should be able to access their own item
-      assert {:ok, result} = TestHelpers.get_item(2, owner)
-      assert result.data["item"]["id"] == "2"
+      owner_id = Integer.to_string(owner.id)
+
+      assert [%{"owner_id" => ^owner_id}] = result.data["me"]["items"]
+    end
+
+    test "authorization rules are enforced in dataloader fields", %{
+      users: [_admin, owner, _inspector]
+    } do
+      {:ok, result} = TestHelpers.get_me(owner)
+
+      items = result[:data]["me"]["items"]
+      subitems = Enum.at(items, 0)["subitems"]
+
+      assert Enum.count(items) > 0
+      assert Enum.all?(items, &(String.to_integer(&1["owner_id"]) == owner.id))
+
+      assert Enum.count(subitems) == 1
+      assert Enum.at(subitems, 0)["name"] == "subitem 3"
     end
   end
 end
