@@ -1,4 +1,5 @@
 defmodule Permit.Absinthe.Dataloader do
+  @moduledoc false
   import Ecto.Query
 
   @spec new(

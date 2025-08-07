@@ -5,14 +5,15 @@ defmodule Permit.Absinthe.MixProject do
     [
       app: :permit_absinthe,
       version: "0.1.0",
-      elixir: "~> 1.13",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: [
         main: "readme",
         extras: ["README.md", "LICENSE"]
-      ]
+      ],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 

@@ -1,4 +1,8 @@
 defmodule Permit.Absinthe.LoadAndAuthorize do
+  @moduledoc """
+  This module contains the load_and_authorize/2 function that can be used from within
+  a custom resolver function, or as a resolver function in its entirety.
+  """
   alias Permit.Absinthe.Schema.{Helpers, Meta}
 
   @doc """

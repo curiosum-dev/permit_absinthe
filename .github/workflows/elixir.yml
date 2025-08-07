@@ -62,21 +62,12 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        elixir_version: ['1.13', '1.14', '1.15', '1.16', '1.17']
+        elixir_version: ['1.15', '1.16', '1.17']
         otp_version: ['26', '27']
         absinthe_version: ['1.7.10', '1.6.8']
         exclude:
-          - elixir_version: '1.13'
-            otp_version: '26'
-          - elixir_version: '1.13'
-            otp_version: '27'
-
-          - elixir_version: '1.14'
-            otp_version: '27'
-
           - elixir_version: '1.15'
             otp_version: '27'
-
           - elixir_version: '1.16'
             otp_version: '27'
 
@@ -99,7 +90,7 @@ jobs:
       env:
         ABSINTHE_VERSION: ${{ matrix.absinthe_version }}
     - name: Create DB
-      run: mix do ecto.create, ecto.migrate
+      run: mix do ecto.create
     - name: Run tests
       run: mix coveralls.json
     - name: Upload coverage reports to Codecov

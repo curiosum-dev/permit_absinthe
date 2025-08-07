@@ -1,4 +1,5 @@
 defmodule Permit.Absinthe.Schema.Prototype do
+  @moduledoc false
   use Absinthe.Schema.Prototype
 
   directive :load_and_authorize do

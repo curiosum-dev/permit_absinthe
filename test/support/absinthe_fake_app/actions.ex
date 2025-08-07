@@ -1,4 +1,5 @@
 defmodule Permit.AbsintheFakeApp.Actions do
+  @moduledoc false
   use Permit.Actions
   @impl true
   def grouping_schema do

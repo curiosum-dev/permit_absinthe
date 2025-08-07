@@ -1,4 +1,6 @@
 defmodule Permit.Absinthe.Schema.Meta do
+  @moduledoc false
+
   @doc """
   Extracts meta information from a field's return type in a resolver.
 
