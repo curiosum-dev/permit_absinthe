@@ -32,12 +32,13 @@ defmodule Permit.Absinthe.Middleware.LoadAndAuthorize do
     end
     ```
   """
+  alias Permit.Absinthe.LoadAndAuthorize
 
   @behaviour Absinthe.Middleware
 
   @impl true
   def call(resolution, _) do
-    case Permit.Absinthe.LoadAndAuthorize.load_and_authorize(
+    case LoadAndAuthorize.load_and_authorize(
            resolution.arguments,
            resolution
          ) do

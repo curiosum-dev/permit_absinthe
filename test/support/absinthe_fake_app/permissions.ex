@@ -1,4 +1,5 @@
 defmodule Permit.AbsintheFakeApp.Permissions do
+  @moduledoc false
   use Permit.Ecto.Permissions, actions_module: Permit.AbsintheFakeApp.Actions
 
   alias Permit.AbsintheFakeApp.Item

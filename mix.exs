@@ -5,14 +5,15 @@ defmodule Permit.Absinthe.MixProject do
     [
       app: :permit_absinthe,
       version: "0.1.0",
-      elixir: "~> 1.18",
+      elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: [
         main: "readme",
         extras: ["README.md", "LICENSE"]
-      ]
+      ],
+      test_coverage: [tool: ExCoveralls]
     ]
   end
 
@@ -34,7 +35,11 @@ defmodule Permit.Absinthe.MixProject do
       {:permit_ecto, "~> 0.2.3"},
       {:absinthe, "~> 1.7"},
       {:dataloader, "~> 2.0"},
-      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
+      {:postgrex, "~> 0.21", only: :test},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
+      {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false},
+      {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
+      {:excoveralls, "~> 0.18", only: :test, runtime: false}
     ]
   end
 end

@@ -1,4 +1,5 @@
 defmodule Permit.Absinthe.Schema.Helpers do
+  @moduledoc false
   alias Permit.Absinthe.Schema.Meta
 
   @doc """

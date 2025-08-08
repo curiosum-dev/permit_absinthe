@@ -92,7 +92,7 @@ defmodule Permit.Absinthe.Middleware.DataloaderSetup do
     # Create or update dataloader in context
     dataloader =
       case resolution.context[:dataloader] do
-        nil -> Dataloader.new(timeout: :infinity)
+        nil -> Dataloader.new(timeout: Dataloader.default_timeout())
         existing -> existing
       end
 

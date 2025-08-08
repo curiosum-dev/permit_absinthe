@@ -1,4 +1,10 @@
 defmodule Permit.Absinthe.Schema.Meta do
+  @moduledoc """
+  This module provides a way to extract meta information from a field's return type in a resolver.
+
+  *Part of the private API and not meant for public use.*
+  """
+
   @doc """
   Extracts meta information from a field's return type in a resolver.
 

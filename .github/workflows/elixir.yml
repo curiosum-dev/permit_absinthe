@@ -1,0 +1,99 @@
+name: Elixir CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+permissions:
+  contents: read
+
+env:
+  MIX_ENV: test
+
+jobs:
+  lint:
+    name: Setup and Lint
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: '1.17'
+        otp-version: '27'
+    - name: Restore dependencies cache
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ${{ runner.os }}-elixir-1.17-otp-27-mix-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-elixir-1.17-otp-27-mix-
+    - name: Install dependencies
+      run: mix deps.get
+      env:
+        ABSINTHE_VERSION: '1.7.10'
+    - name: Dialyzer
+      run: MIX_ENV=test mix dialyzer
+    - name: Credo
+      run: MIX_ENV=test mix credo
+
+  build:
+    name: Build and test
+    needs: lint
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:14
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    strategy:
+      fail-fast: false
+      matrix:
+        elixir_version: ['1.15', '1.16', '1.17']
+        otp_version: ['26', '27']
+        absinthe_version: ['1.7.10', '1.6.8']
+        exclude:
+          - elixir_version: '1.15'
+            otp_version: '27'
+          - elixir_version: '1.16'
+            otp_version: '27'
+
+    steps:
+    - uses: actions/checkout@v4
+    - name: Set up Elixir
+      uses: erlef/setup-beam@v1
+      with:
+        elixir-version: ${{ matrix.elixir_version }}
+        otp-version: ${{ matrix.otp_version }}
+    - name: Restore dependencies cache
+      uses: actions/cache@v4
+      with:
+        path: deps
+        key: ${{ runner.os }}-elixir-${{ matrix.elixir_version }}-otp-${{ matrix.otp_version }}-mix-${{ hashFiles('**/mix.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-elixir-${{ matrix.elixir_version }}-otp-${{ matrix.otp_version }}-mix-
+    - name: Install dependencies
+      run: mix deps.get
+      env:
+        ABSINTHE_VERSION: ${{ matrix.absinthe_version }}
+    - name: Create DB
+      run: mix do ecto.create
+    - name: Run tests
+      run: mix coveralls.json
+    - name: Upload coverage reports to Codecov
+      uses: codecov/codecov-action@v4.0.1
+      with:
+        token: ${{ secrets.CODECOV_TOKEN }}

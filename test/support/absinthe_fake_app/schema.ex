@@ -1,11 +1,12 @@
 defmodule Permit.AbsintheFakeApp.Schema do
+  @moduledoc false
   use Absinthe.Schema
   use Permit.Absinthe, authorization_module: Permit.AbsintheFakeApp.Authorization
 
   @prototype_schema Permit.Absinthe.Schema.Prototype
 
-  alias Permit.AbsintheFakeApp.{Item, Subitem, User}
   alias Permit.Absinthe, as: PermitAbsinthe
+  alias Permit.AbsintheFakeApp.{Item, Subitem, User}
 
   # Custom types
   object :user do
