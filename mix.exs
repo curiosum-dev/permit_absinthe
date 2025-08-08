@@ -27,12 +27,9 @@ defmodule Permit.Absinthe.MixProject do
   defp deps do
     [
       {:permit, "~> 0.2.1"},
-      {:permit_ecto, "~> 0.2.3", only: :test},
+      {:permit_ecto, "~> 0.2.3"},
       {:absinthe, "~> 1.7"},
-      {:absinthe_plug, "~> 1.5", only: :test},
-      {:dataloader, "~> 2.0", only: :test},
-      {:ecto_sql, "~> 3.0", only: :test},
-      {:postgrex, "~> 0.16", only: :test}
+      {:dataloader, "~> 2.0"}
     ]
   end
 end
