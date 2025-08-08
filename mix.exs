@@ -50,7 +50,9 @@ defmodule Permit.Absinthe.MixProject do
     [
       licenses: ["MIT"],
       links: %{"GitHub" => @source_url},
-      maintainers: ["Michał Buszkiewicz"]
+      maintainers: ["Michał Buszkiewicz"],
+      description:
+        "Permit.Absinthe provides integration between the Permit authorization library and Absinthe GraphQL for Elixir."
     ]
   end
 end
