@@ -10,12 +10,12 @@ by adding `permit_absinthe` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:permit_absinthe, "~> 0.1.0"},
-    {:permit, "~> 0.2.0"},
-    {:permit_ecto, "~> 0.2.0"} # Optional, for Ecto integration
+    {:permit_absinthe, "~> 0.1.0"}
   ]
 end
 ```
+
+Permit.Absinthe depends on [`:permit`](https://hex.pm/packages/permit) and [`permit_ecto`](https://hex.pm/packages/permit_ecto), as well as on Absinthe and Dataloader. It does not depend on Absinthe.Plug except for running tests.
 
 Documentation can be generated with [ExDoc](https://github.com/elixir-lang/ex_doc)
 and published on [HexDocs](https://hexdocs.pm). Once published, the docs can
@@ -29,7 +29,7 @@ be found at <https://hexdocs.pm/permit_absinthe>.
 
 ## Usage
 
-### Map GraphQL Types to Permit Resources
+### Map GraphQL types to Permit resources
 
 In your Absinthe schema, define metadata that maps your GraphQL types to Ecto schemas:
 
@@ -49,7 +49,7 @@ object :post do
 end
 ```
 
-### Add Field-specific Actions
+### Add field-specific actions
 
 By default, queries map to the `:read` action while mutations require explicit actions. You can specify these using the `permit` macro (or `meta` likewise):
 
@@ -65,7 +65,7 @@ field :create_post, :post do
 end
 ```
 
-### Using Authorization Resolvers
+### Using authorization resolvers
 
 Permit.Absinthe provides resolver functions to load and authorize resources automatically:
 
@@ -84,11 +84,13 @@ defmodule MyApp.Schema do
 
   query do
     field :post, :post do
+      permit action: :read
       arg :id, non_null(:id)
       resolve &load_and_authorize/2
     end
 
     field :posts, list_of(:post) do
+      permit action: :read
       resolve &load_and_authorize/2
     end
   end
@@ -107,7 +109,7 @@ field :post_by_slug, :post do
 end
 ```
 
-### Load & Authorize Using Middleware
+### Load & authorize using Absinthe Middleware
 
 In mutations, or whenever  custom and more complex resolution logic needs to be used, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
 
@@ -117,7 +119,7 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
     field :articles, list_of(:article) do
       permit action: :read
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize, :all
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
 
       resolve(fn _parent, _args, %{context: context} = _resolution ->
         # ...
@@ -171,8 +173,7 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
   end
 ```
 
-### Using the Authorize Directive
-
+### Authorizing with GraphQL directives
 
 Permit.Absinthe provides the `:load_and_authorize` directive to automatically load and authorize resources in your GraphQL fields.
 
@@ -196,11 +197,11 @@ defmodule MyAppWeb.Schema do
     end
   end
 end
-
+```
 
 The `:load_and_authorize` directive works with both single resources and lists of resources, ensuring that only accessible items are returned to the client based on the permission rules defined in your authorization module.
 
-### Custom Resolvers with Vanilla Permit Authorization
+### Custom resolvers with vanilla Permit authorization
 
 For more complex authorization scenarios, you can implement custom resolvers using vanilla Permit syntax:
 
@@ -220,5 +221,4 @@ end
 
 ## License
 
-MIT
-```
+MIT (see [LICENSE](./LICENSE)).

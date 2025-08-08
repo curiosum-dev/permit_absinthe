@@ -2,7 +2,7 @@ defmodule Permit.Absinthe do
   use Absinthe.Schema.Notation
 
   # @doc """
-  # Adds Permit metadata to the field. Most importantly, it allows specifying:
+  # Adds Permit metadata to the type or field. Most importantly, it allows specifying:
   # - the Ecto schema (or resource struct) that a GraphQL type maps to,
   # - the Permit action that the GraphQL field is allowed to perform on the resource.
 
@@ -30,20 +30,6 @@ defmodule Permit.Absinthe do
     end
   end
 
-  # @doc """
-  # Absinthe resolver that loads and authorizes a single resource.
-
-  # ## Example
-
-  #   ```elixir
-  #   field :article, :article do
-  #     permit action: :show
-
-  #     resolve &load_and_authorize/2
-  #   end
-  #   ```
-  # """
-
   @doc """
   Absinthe resolver that loads and authorizes a list of resources or a single resource.
 
@@ -51,14 +37,14 @@ defmodule Permit.Absinthe do
 
     ```elixir
     field :articles, list_of(:article) do
-      permit action: :index
+      permit action: :read
 
       resolve &load_and_authorize/2
     end
 
     field :article, :article do
-      permit action: :show
-
+      permit action: :read
+      arg :id, non_null(:id)
       resolve &load_and_authorize/2
     end
     ```

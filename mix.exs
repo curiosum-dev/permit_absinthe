@@ -8,7 +8,11 @@ defmodule Permit.Absinthe.MixProject do
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
-      elixirc_paths: elixirc_paths(Mix.env())
+      elixirc_paths: elixirc_paths(Mix.env()),
+      docs: [
+        main: "readme",
+        extras: ["README.md", "LICENSE"]
+      ]
     ]
   end
 
@@ -29,7 +33,8 @@ defmodule Permit.Absinthe.MixProject do
       {:permit, "~> 0.2.1"},
       {:permit_ecto, "~> 0.2.3"},
       {:absinthe, "~> 1.7"},
-      {:dataloader, "~> 2.0"}
+      {:dataloader, "~> 2.0"},
+      {:ex_doc, ">= 0.0.0", only: :dev, runtime: false}
     ]
   end
 end
