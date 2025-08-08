@@ -35,6 +35,7 @@ defmodule Permit.Absinthe.MixProject do
       {:permit_ecto, "~> 0.2.3"},
       {:absinthe, "~> 1.7"},
       {:dataloader, "~> 2.0"},
+      {:postgrex, "~> 0.21", only: :test},
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},

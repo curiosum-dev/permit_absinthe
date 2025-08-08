@@ -1,5 +1,12 @@
 defmodule Permit.Absinthe.Dataloader do
-  @moduledoc false
+  @moduledoc """
+  This module provides a dataloader for Absinthe that is aware of the current authorization context.
+  It is used to load data from the database in a way that is aware of the current authorization context.
+
+  Under the hood, it uses the `Dataloader.Ecto` module to create a dataloader structure.
+
+  *Part of the private API and not meant for public use.*
+  """
   import Ecto.Query
 
   @spec new(
