@@ -1,6 +1,22 @@
-# Permit.Absinthe
+<div align="center">
+  <img src="https://github.com/user-attachments/assets/f0352656-397d-4d90-999a-d3adbae1095f">
+
+  # Permit.Absinthe
+  <p><strong>Authorization-aware GraphQL with Absinthe and Permit for Elixir.</strong></p>
+
+  [![Contact Us](https://img.shields.io/badge/Contact%20Us-%23F36D2E?style=for-the-badge&logo=maildotru&logoColor=white&labelColor=F36D2E)](https://curiosum.com/contact)
+  [![Visit Curiosum](https://img.shields.io/badge/Visit%20Curiosum-%236819E6?style=for-the-badge&logo=elixir&logoColor=white&labelColor=6819E6)](https://curiosum.com/services/elixir-software-development)
+  [![License: MIT](https://img.shields.io/badge/License-MIT-1D0642?style=for-the-badge&logo=open-source-initiative&logoColor=white&labelColor=1D0642)]()
+</div>
+
+<br/>
 
 Permit.Absinthe provides integration between the [Permit](https://hexdocs.pm/permit) authorization library and [Absinthe](https://hexdocs.pm/absinthe) GraphQL for Elixir.
+
+[![Hex version badge](https://img.shields.io/hexpm/v/permit_absinthe.svg)](https://hex.pm/packages/permit_absinthe)
+[![Version badge](https://img.shields.io/badge/Version-0.1.0-blue.svg)](https://github.com/curiosum-dev/permit_absinthe)
+[![Actions Status](https://github.com/curiosum-dev/permit_absinthe/actions/workflows/elixir.yml/badge.svg)](https://github.com/curiosum-dev/permit_absinthe/actions)
+[![License badge](https://img.shields.io/hexpm/l/permit.svg)](https://github.com/curiosum-dev/permit_absinthe/blob/master/LICENSE)
 
 ## Installation
 
@@ -219,6 +235,29 @@ defmodule MyApp.Resolvers.Post do
 end
 ```
 
+## Community & support
+
+- **Issues**: [GitHub Issues](https://github.com/curiosum-dev/permit_absinthe/issues)
+- **Elixir Slack**: Join us in [#permit](https://elixir-lang.slack.com/archives/C091Q5S0GDU) on Elixir Slack
+- **Blog**: Permit-related content in the [Curiosum Blog](https://curiosum.com/blog?search=permit)
+
+## Contributing
+
+We welcome contributions! Please see the main [Permit Contributing Guide](https://github.com/curiosum-dev/permit/blob/master/CONTRIBUTING.md) for details.
+
+Feel free to submit bugfix requests and feature ideas in Permit.Absinthe's [GitHub Issues](https://github.com/curiosum-dev/permit_absinthe/issues) and create pull requests, whereas the best place to discuss development ideas and questions is the [Permit channel in the Elixir Slack](https://elixir-lang.slack.com/archives/C091Q5S0GDU).
+
+### Development setup
+
+* Clone the repository and install dependencies with `mix deps.get` normally
+* Tools such as Credo and Dialyzer should be run with `MIX_ENV=test`
+* The test suite requires Postgres to run and configured as in `config/test.exs`
+
+## Contact
+
+* Library maintainer: [Michał Buszkiewicz](https://github.com/vincentvanbush)
+* [**Curiosum**](https://curiosum.com) - Elixir development team behind Permit
+
 ## License
 
-MIT (see [LICENSE](./LICENSE)).
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.

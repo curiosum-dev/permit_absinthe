@@ -1,207 +1,116 @@
 defmodule Permit.Absinthe do
   @moduledoc """
-  Permit.Absinthe provides integration between the [Permit](https://hexdocs.pm/permit)
-  authorization library and [Absinthe](https://hexdocs.pm/absinthe) GraphQL for Elixir.
+  Integration between Permit authorization and Absinthe GraphQL.
 
-  This module enables automatic authorization of GraphQL queries and mutations by mapping
-  GraphQL types to Permit resource modules (typically Ecto schemas) and providing
-  resolvers and middleware for seamless resource loading and authorization.
+  This lets you map GraphQL types to Ecto schemas and automatically handle
+  authorization in your resolvers. No more manually checking permissions
+  in every resolver or worrying about unauthorized data leaking through.
 
-  ## Features
-
-  - Map GraphQL types to Permit resource modules (Ecto schemas)
-  - Automatically check permissions for queries and mutations
-  - Resolvers for automatic resource loading and authorization
-  - Middleware support for complex resolution scenarios
-  - Dataloader integration for optimized N+1 query prevention
-  - Directive-based authorization using `:load_and_authorize`
-
-  ## Usage
-
-  ### Basic Setup
-
-  Add `Permit.Absinthe` to your schema and specify your authorization module:
+  Basic setup - add it to your schema:
 
       defmodule MyAppWeb.Schema do
         use Absinthe.Schema
         use Permit.Absinthe, authorization_module: MyApp.Authorization
-
-        # Your schema definition...
       end
 
-  ### Mapping GraphQL Types to Resources
-
-  Use the `permit/1` macro to map GraphQL types to Ecto schemas:
+  Map GraphQL types to schemas:
 
       object :post do
         permit schema: MyApp.Blog.Post
-
         field :id, :id
         field :title, :string
-        field :content, :string
       end
 
-  ### Field-Level Authorization
-
-  Specify actions for individual fields. Queries default to `:read` action,
-  while mutations require explicit action specification:
-
-      field :unpublished_posts, list_of(:post) do
-        permit action: :view_unpublished
-        resolve &PostResolver.unpublished_posts/3
-      end
-
-      field :create_post, :post do
-        permit action: :create
-        resolve &PostResolver.create_post/3
-      end
-
-  Custom action names are supported; ensure your module implementing
-  [`Permit.Actions`](https://hexdocs.pm/permit/Permit.Actions.html)
-  defines them as desired.
-
-  ### Automatic Resource Loading and Authorization
-
-  Use the `load_and_authorize/2` resolver for automatic resource loading:
+  Then use the built-in resolvers for automatic loading and authorization:
 
       query do
         field :post, :post do
-          permit action: :read
           arg :id, non_null(:id)
-          resolve &load_and_authorize/2
+          resolve &load_and_authorize/2  # loads and checks permissions
         end
 
         field :posts, list_of(:post) do
-          permit action: :read
-          resolve &load_and_authorize/2
+          resolve &load_and_authorize/2  # returns only accessible posts
         end
       end
 
-  ### Custom ID Parameters
-
-  Specify custom ID parameter names and struct field names:
+  Custom ID fields work too:
 
       field :post_by_slug, :post do
-        arg :slug, non_null(:string)
         permit action: :read, id_param_name: :slug, id_struct_field_name: :slug
+        arg :slug, non_null(:string)
         resolve &load_and_authorize/2
       end
 
-  ### Using Middleware
+  For mutations and complex scenarios, use middleware and a custom resolver instead:
 
-  For complex scenarios requiring custom resolution logic, use the middleware approach:
-
-      mutation do
-        field :update_article, :article do
-          permit action: :update
-          arg :id, non_null(:id)
-          arg :name, non_null(:string)
-
-          middleware Permit.Absinthe.Middleware.LoadAndAuthorize
-
-          resolve fn _, args, %{context: %{loaded_resource: article}} ->
-            MyApp.Blog.update_article(article, args)
-          end
+      field :update_post, :post do
+        permit action: :update
+        middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+        resolve fn _, args, %{context: %{loaded_resource: post}} ->
+          # post is already loaded and authorized
+          MyApp.Blog.update_post(post, args)
         end
       end
 
-  ### Using Directives
+    Works with Dataloader for efficient batch loading:
 
-  Enable the `:load_and_authorize` directive by adding the prototype schema:
-
-      defmodule MyAppWeb.Schema do
-        use Absinthe.Schema
-
-        @prototype_schema Permit.Absinthe.Schema.Prototype
-
-        query do
-          field :items, list_of(:item), directives: [:load_and_authorize] do
-            permit action: :read
-
-            resolve fn _, _, %{context: %{loaded_resources: items}} ->
-              {:ok, items}
-            end
-          end
-        end
-      end
-
-  ### Dataloader Integration
-
-  For optimized batch loading with authorization, use the `authorized_dataloader/3` resolver:
-
-      field :posts, list_of(:post) do
+      field :comments, list_of(:comment) do
+        permit action: :read
         resolve &authorized_dataloader/3
       end
 
-  ## Authorization Flow
+  You can also use directives if visibility in the schema is important. Add the prototype schema:
 
-  1. **Type mapping**: GraphQL types are mapped to Ecto schemas using `permit schema: Module`
-  2. **Action determination**: Actions are specified via `permit action: :action_name` or default to `:read` for queries
-  3. **Resource loading**: Resources are loaded based on query parameters and field metadata
-  4. **Authorization check**: Permit authorization rules are applied using the configured authorization module
-  5. **Result return**: Authorized resources are returned, or authorization errors are returned
+      # Inside the schema module
+      @prototype_schema Permit.Absinthe.Schema.Prototype
 
-  ## Error Handling
+  Then use the `:load_and_authorize` directive on fields:
 
-  - Returns `{:error, "Unauthorized"}` when authorization fails
-  - Returns `{:error, "Not found"}` when resources don't exist or aren't accessible
-  - Raises `ArgumentError` when required action is not specified for mutations
+      field :posts, list_of(:post), directives: [:load_and_authorize] do
+        permit action: :read
+        resolve fn _, _, %{context: %{loaded_resources: posts}} ->
+          {:ok, posts}
+        end
+      end
 
-  ## Integration with Permit Ecosystem
-
-  This module works seamlessly with:
-  - `Permit` - Core authorization library
-  - `Permit.Ecto` - Ecto integration for database-level authorization
-  - `Permit.Phoenix` - Phoenix controller and LiveView integration
+  Authorization happens automatically based on your Permit rules. Returns
+  `{:error, "Unauthorized"}` or `{:error, "Not found"}` when access is denied.
   """
   use Absinthe.Schema.Notation
 
   @doc """
-  Adds Permit metadata to GraphQL types and fields.
+  Maps GraphQL types and fields to Permit resources and actions.
 
-  This macro allows you to specify:
-  - The Ecto schema (or resource struct) that a GraphQL type maps to
-  - The Permit action that a GraphQL field is authorized to perform
-  - Custom ID parameter and field names for resource loading
-  - Base query functions for custom filtering
+  Use this to tell Permit which Ecto schema a GraphQL type represents,
+  what action to authorize, or customize how resources are loaded.
 
-  ## Options
+  Map a type to a schema:
 
-  - `:schema` - The Ecto schema module that this GraphQL type represents
-  - `:action` - The Permit action to authorize (required for mutations, defaults to `:read` for queries)
-  - `:id_param_name` - The parameter name to use for resource lookup (defaults to `:id`)
-  - `:id_struct_field_name` - The struct field name to match against (defaults to `:id`)
-  - `:base_query` - A function to generate the base query for resource loading
-
-  ## Examples
-
-      # Map a GraphQL type to an Ecto schema
       object :article do
         permit schema: Blog.Content.Article
-
-        field :id, :id
-        field :title, :string
+        # ...
       end
 
-      # Specify action for a field
-      field :articles, list_of(:article) do
-        permit action: :read
-        resolve &load_and_authorize/2
-      end
+  Specify an action for a field:
 
-      # Custom ID parameter for slug-based lookup
-      field :article_by_slug, :article do
-        arg :slug, non_null(:string)
-        permit action: :read, id_param_name: :slug, id_struct_field_name: :slug
-        resolve &load_and_authorize/2
-      end
-
-      # Mutation with required action
       field :create_article, :article do
         permit action: :create
-        arg :title, non_null(:string)
-        resolve &ArticleResolver.create/3
+        # ...
       end
+
+  Custom ID lookups:
+
+      field :article_by_slug, :article do
+        permit action: :read, id_param_name: :slug, id_struct_field_name: :slug
+        # ...
+      end
+
+  Options:
+  - `:schema` - Ecto schema this type represents
+  - `:action` - Action to authorize (required for mutations, defaults to `:read`)
+  - `:id_param_name` - Parameter name for lookups (defaults to `:id`)
+  - `:id_struct_field_name` - Struct field to match against (defaults to `:id`)
   """
 
   defmacro permit(opts) do
@@ -218,42 +127,32 @@ defmodule Permit.Absinthe do
   defdelegate load_and_authorize(args, resolution), to: Permit.Absinthe.Resolvers.LoadAndAuthorize
 
   @doc """
-  Absinthe resolver that uses Dataloader for optimized batch loading with authorization.
+  Dataloader resolver that batches queries while checking authorization.
 
-  This resolver leverages Absinthe's Dataloader to efficiently batch database queries
-  while still applying Permit authorization rules. It's particularly useful for resolving
-  associations and preventing N+1 query problems in GraphQL.
+  Prevents N+1 queries by batching database calls, but still applies your
+  Permit authorization rules. Great for loading associations efficiently.
 
-  ## Parameters
+  Use it like a standard dataloader resolver:
 
-  - `parent` - The parent object in the GraphQL resolution
-  - `args` - The arguments passed to the field
-  - `resolution` - The Absinthe resolution context
-
-  ## Example
-
-      field :posts, list_of(:post) do
-        permit action: :read
-        resolve &authorized_dataloader/3
+      object :post do
+        permit schema: MyApp.Blog.Post
+        field :id, :id
+        field :title, :string
+        field :comments, list_of(:comment), resolve: &authorized_dataloader/3
       end
 
-      field :comments, list_of(:comment) do
-        permit action: :read
-        resolve &authorized_dataloader/3
-      end
-
-  ## Setup
-
-  To use this resolver, you need to configure Dataloader in your field:
-
-      middleware(Permit.Absinthe.Middleware.DataloaderSetup)
-
-  Also, as typical with Dataloader, you need to configure the dataloader in your Absinthe schema:
+  You'll need to set up Dataloader in your schema as usual:
 
       def plugins do
         [Absinthe.Middleware.Dataloader | Absinthe.Plugin.defaults()]
       end
 
+  And add the dataloader setup middleware to fields that use it:
+
+      field :post, :post do
+        permit action: :read
+        middleware Permit.Absinthe.Middleware.DataloaderSetup
+      end
   """
 
   # Dialyzer ignore explained in Permit.Absinthe.Resolvers.Dataloader

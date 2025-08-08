@@ -1,6 +1,8 @@
 defmodule Permit.Absinthe.MixProject do
   use Mix.Project
 
+  @source_url "https://github.com/curiosum-dev/permit_absinthe"
+
   def project do
     [
       app: :permit_absinthe,
@@ -8,9 +10,10 @@ defmodule Permit.Absinthe.MixProject do
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
+      package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: [
-        main: "readme",
+        main: "Permit.Absinthe",
         extras: ["README.md", "LICENSE"]
       ],
       test_coverage: [tool: ExCoveralls]
@@ -40,6 +43,14 @@ defmodule Permit.Absinthe.MixProject do
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false}
+    ]
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => @source_url},
+      maintainers: ["Michał Buszkiewicz"]
     ]
   end
 end

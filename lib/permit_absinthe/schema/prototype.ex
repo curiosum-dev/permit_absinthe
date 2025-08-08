@@ -1,5 +1,32 @@
 defmodule Permit.Absinthe.Schema.Prototype do
-  @moduledoc false
+  @moduledoc """
+  Prototype schema for Absinthe.
+
+  This module defines the `:load_and_authorize` directive, which is used to authorize
+  fields in the schema.
+
+  ## Usage
+
+  Add the prototype schema to your schema:
+
+      defmodule MyAppWeb.Schema do
+        use Absinthe.Schema
+
+        @prototype_schema Permit.Absinthe.Schema.Prototype
+
+        # Your schema definition...
+
+        query do
+          field :items, list_of(:item), directives: [:load_and_authorize] do
+            permit(action: :read)
+
+            resolve(fn _, %{context: %{loaded_resources: items}} ->
+              {:ok, items}
+            end)
+          end
+        end
+      end
+  """
   use Absinthe.Schema.Prototype
 
   directive :load_and_authorize do
