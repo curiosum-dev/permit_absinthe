@@ -1,0 +1,139 @@
+name: Feature Request
+description: Suggest a new feature or enhancement for Permit.Absinthe
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+assignees:
+  - vincentvanbush
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new feature! Please provide as much detail as possible to help us understand your request.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem description
+      description: Is your feature request related to an usage pattern you've identified as needing improvement? Please describe.
+      placeholder: I've noticed that often when ... / I'm always frustrated when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the solution you'd like to see implemented
+      placeholder: I would like to be able to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Describe any alternative solutions or features you've considered
+      placeholder: I have also considered...
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use case
+      description: Describe your specific authorization integration use case and how this feature would help
+      placeholder: When integrating Permit with my GraphQL schema, I need to...
+    validations:
+      required: true
+
+  - type: textarea
+    id: api-example
+    attributes:
+      label: Desired API/integration example
+      description: Show how you'd like to use this feature with Permit.Absinthe
+      render: elixir
+      placeholder: |
+        # Example of how you'd like to use this feature
+        defmodule MyAppWeb.Schema do
+          use Absinthe.Schema
+          use Permit.Absinthe, authorization_module: MyApp.Authorization
+
+          query do
+            field :posts, list_of(:post) do
+              # New feature usage example
+              permit action: :read, new_option: true
+              resolve &load_and_authorize/2
+            end
+          end
+
+          object :post do
+            permit schema: MyApp.Blog.Post, new_feature: :some_value
+            field :id, :id
+            field :title, :string
+          end
+        end
+
+  - type: textarea
+    id: authorization-example
+    attributes:
+      label: Authorization behavior example
+      description: Show how the authorization would work with this feature
+      render: elixir
+      placeholder: |
+        # How the authorization logic would work
+        defmodule MyApp.Permissions do
+          use Permit.Ecto.Permissions, actions_module: Permit.Actions.CrudActions
+
+          def can(user) do
+            permit()
+            |> allow(:read, MyApp.Blog.Post, condition: [author_id: user.id])
+            # New authorization pattern enabled by feature
+          end
+        end
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority (1-3)
+      description: How important is this feature to you?
+      options:
+        - 1 - Low - Nice to have
+        - 2 - Medium - Would be helpful
+        - 3 - High - Blocking my work
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Feature Category
+      description: What category does this feature fall into?
+      options:
+        - Authorization Integration
+        - Schema Helpers/Macros
+        - Resolvers/Middleware
+        - Dataloader Integration
+        - Performance/Optimization
+        - Developer Experience
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context, screenshots, or examples about the feature request
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Checklist
+      description: Please confirm the following
+      options:
+        - label: I have searched for existing issues before creating this one
+          required: true
+        - label: I have checked the roadmap in the README
+          required: true
+        - label: This is a feature request, not a bug report or question. For general questions, please use [Elixir Slack's Permit channel](https://elixir-lang.slack.com/archives/C091Q5S0GDU).
+          required: true
