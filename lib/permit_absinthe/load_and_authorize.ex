@@ -3,6 +3,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
   This module contains the load_and_authorize/2 function that can be used from within
   a custom resolver function, or as a resolver function in its entirety.
   """
+
   alias Permit.Absinthe.Schema.{Helpers, Meta}
 
   @doc """
@@ -50,32 +51,191 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     authorization_module =
       Meta.get_field_meta_from_resolution(resolution, :authorization_module)
 
-    arity =
-      case resolution.definition.schema_node.type do
-        %Absinthe.Type.List{} -> :all
-        _ -> :one
-      end
+    resolution_context =
+      build_resolution_context(args, resolution, field_meta, type_meta, authorization_module)
 
-    case authorization_module.resolver_module().resolve(
-           resolution.context[:current_user],
-           authorization_module,
-           module,
-           action,
-           %{
-             params: args,
-             resolution: resolution,
-             base_query: field_meta[:base_query] || (&Helpers.base_query/1)
-           },
-           arity
-         ) do
-      {:authorized, resource} ->
+    subject = fetch_subject(resolution_context, field_meta)
+
+    if is_nil(subject) do
+      handle_unauthorized(resolution_context, field_meta)
+    else
+      arity = determine_arity(resolution)
+
+      case authorize_and_load(
+             subject,
+             authorization_module,
+             module,
+             action,
+             resolution_context,
+             arity
+           ) do
+        {:authorized, resource} ->
+          wrap_authorized_response(resource, field_meta)
+
+        :unauthorized ->
+          handle_unauthorized(resolution_context, field_meta)
+
+        :not_found ->
+          handle_not_found(resolution_context, field_meta)
+      end
+    end
+  end
+
+  defp build_resolution_context(args, resolution, field_meta, type_meta, authorization_module) do
+    %{
+      params: args,
+      resolution: resolution,
+      field_meta: field_meta,
+      type_meta: type_meta,
+      action: field_meta[:action] || Helpers.default_action(resolution),
+      resource_module: type_meta[:schema],
+      authorization_module: authorization_module,
+      base_query:
+        field_meta |> get_field(:base_query) |> get_fn_from_ast(1) || (&Helpers.base_query/1),
+      finalize_query: field_meta |> get_field(:finalize_query) |> get_fn_from_ast(2)
+    }
+  end
+
+  defp get_field(meta, key) do
+    cond do
+      is_map(meta) -> meta[key]
+      is_list(meta) -> Keyword.get(meta, key)
+      true -> nil
+    end
+  end
+
+  defp get_fn_from_ast(value, arity \\ 1)
+
+  defp get_fn_from_ast(f, arity) when is_function(f, arity), do: f
+
+  defp get_fn_from_ast({:fn, _meta, _clauses} = fn_ast, arity) do
+    with {function, _} <- Code.eval_quoted(fn_ast, []),
+         true <- is_function(function, arity) do
+      function
+    else
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp get_fn_from_ast(_, _), do: nil
+
+  defp fetch_subject(context, field_meta) do
+    case field_meta |> get_field(:fetch_subject) |> get_fn_from_ast() do
+      nil ->
+        context.resolution.context[:current_user]
+
+      fetch_subject_fn ->
+        try do
+          fetch_subject_fn.(context)
+        rescue
+          _ -> nil
+        end
+    end
+  end
+
+  defp handle_unauthorized(context, field_meta) do
+    case field_meta |> get_field(:handle_unauthorized) |> get_fn_from_ast() do
+      nil ->
+        message = field_meta[:unauthorized_message] || "Unauthorized"
+        {:error, message}
+
+      handle_unauthorized_fn ->
+        try do
+          handle_unauthorized_fn.(context)
+        rescue
+          _ -> {:error, "Unauthorized"}
+        end
+    end
+  end
+
+  defp handle_not_found(context, field_meta) do
+    case field_meta |> get_field(:handle_not_found) |> get_fn_from_ast() do
+      nil ->
+        {:error, "Not found"}
+
+      handle_not_found_fn ->
+        try do
+          handle_not_found_fn.(context)
+        rescue
+          _ -> {:error, "Not found"}
+        end
+    end
+  end
+
+  defp wrap_authorized_response(resource, field_meta) do
+    case field_meta |> get_field(:wrap_authorized) |> get_fn_from_ast() do
+      nil ->
         {:ok, resource}
 
-      :unauthorized ->
-        {:error, "Unauthorized"}
+      wrap_authorized_fn ->
+        try do
+          case wrap_authorized_fn.(resource) do
+            {:ok, wrapped_resource} ->
+              {:ok, wrapped_resource}
 
-      :not_found ->
-        {:error, "Not found"}
+            {:error, error} ->
+              {:error, error}
+
+            _ ->
+              {:error, "wrap_authorized function returned invalid type"}
+          end
+        rescue
+          _ -> {:error, "wrap_authorized function raised an exception"}
+        end
+    end
+  end
+
+  defp authorize_and_load(subject, authorization_module, module, action, context, arity) do
+    case context.field_meta |> get_field(:loader) |> get_fn_from_ast() do
+      nil ->
+        meta = %{
+          params: context.params,
+          resolution: context.resolution,
+          base_query: context.base_query,
+          finalize_query: context.finalize_query || fn query, _ctx -> query end
+        }
+
+        authorization_module.resolver_module().resolve(
+          subject,
+          authorization_module,
+          module,
+          action,
+          meta,
+          arity
+        )
+
+      loader_fn ->
+        loaded =
+          try do
+            loader_fn.(context)
+          rescue
+            _ -> nil
+          end
+
+        cond do
+          is_nil(loaded) ->
+            :not_found
+
+          authorization_module.resolver_module().authorized?(
+            subject,
+            authorization_module,
+            loaded,
+            action
+          ) ->
+            {:authorized, loaded}
+
+          true ->
+            :unauthorized
+        end
+    end
+  end
+
+  defp determine_arity(resolution) do
+    case resolution.definition.schema_node.type do
+      %Absinthe.Type.List{} -> :all
+      _ -> :one
     end
   end
 end
