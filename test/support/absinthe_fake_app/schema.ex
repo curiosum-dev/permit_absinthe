@@ -8,6 +8,8 @@ defmodule Permit.AbsintheFakeApp.Schema do
   alias Permit.Absinthe, as: PermitAbsinthe
   alias Permit.AbsintheFakeApp.{Item, Subitem, User}
 
+  import Ecto.Query
+
   # Custom types
   object :user do
     field(:id, :id)
@@ -97,6 +99,286 @@ defmodule Permit.AbsintheFakeApp.Schema do
         {:ok, current_user}
       end)
     end
+
+    field :item_with_custom_subject, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        fetch_subject: fn %{resolution: resolution} ->
+          get_in(resolution.context, [:custom_user])
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_custom_base_query, :item do
+      arg(:id, non_null(:id))
+      arg(:owner_id, :id)
+
+      permit(
+        action: :read,
+        base_query: fn %{params: params} ->
+          query = from(i in Item, where: i.id == ^params.id)
+
+          case params do
+            %{owner_id: owner_id} ->
+              where(query, [i], i.owner_id == ^owner_id)
+
+            _ ->
+              query
+          end
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :items_with_finalize_query, list_of(:item) do
+      arg(:limit, :integer)
+      arg(:offset, :integer)
+
+      permit(
+        action: :read,
+        finalize_query: fn query, %{params: params} ->
+          query =
+            case params do
+              %{limit: limit} -> limit(query, ^limit)
+              _ -> query
+            end
+
+          case params do
+            %{offset: offset} -> offset(query, ^offset)
+            _ -> query
+          end
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_custom_unauthorized, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        handle_unauthorized: fn %{action: action, resource_module: module} ->
+          {:error,
+           %{
+             message: "Custom unauthorized for #{action} on #{inspect(module)}",
+             code: "CUSTOM_FORBIDDEN"
+           }}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_custom_not_found, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        handle_not_found: fn %{params: params} ->
+          {:error,
+           %{
+             message: "Custom not found",
+             code: "CUSTOM_NOT_FOUND",
+             params: params
+           }}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_custom_message, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        unauthorized_message: "You don't have permission to view this item"
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_custom_loader, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        loader: fn %{params: %{id: id}} ->
+          %Item{
+            id: id,
+            permission_level: 1,
+            thread_name: "custom_loaded",
+            owner_id: 1
+          }
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_wrapped_response, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        wrap_authorized: fn item ->
+          {:ok, item}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_combined_options, :item do
+      arg(:id, non_null(:id))
+      arg(:owner_id, :id)
+
+      permit(
+        action: :read,
+        base_query: fn %{params: params} ->
+          query = from(i in Item, where: i.id == ^params.id)
+
+          case params do
+            %{owner_id: owner_id} -> where(query, [i], i.owner_id == ^owner_id)
+            _ -> query
+          end
+        end,
+        fetch_subject: fn %{resolution: resolution} ->
+          resolution.context[:custom_user] || resolution.context[:current_user]
+        end,
+        handle_unauthorized: fn _ ->
+          {:error, "Combined options: unauthorized"}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_nil_loader, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        loader: fn %{params: _params} ->
+          nil
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_raising_loader, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        loader: fn %{params: _params} ->
+          raise "Loader error"
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_error_wrap, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        wrap_authorized: fn _item ->
+          {:error, "Custom error from wrap"}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_raising_fetch_subject, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        fetch_subject: fn %{resolution: _resolution} ->
+          raise "fetch_subject error"
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_raising_unauthorized_handler, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        handle_unauthorized: fn _ ->
+          raise "unauthorized handler error"
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_raising_not_found_handler, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        base_query: fn _ ->
+          from(i in Item, where: i.id == -999)
+        end,
+        handle_not_found: fn _ ->
+          raise "not found handler error"
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_raising_wrap_authorized, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        wrap_authorized: fn _item ->
+          raise "wrap_authorized error"
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_invalid_wrap_return, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        wrap_authorized: fn _item ->
+          "invalid return type"
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_invalid_wrap_return_tuple, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        wrap_authorized: fn _item ->
+          {:custom, "response"}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
   end
 
   # Mutations
@@ -134,6 +416,33 @@ defmodule Permit.AbsintheFakeApp.Schema do
                  %{permission_level: permission_level, thread_name: thread_name},
                  %{context: %{loaded_resource: item}} ->
         {:ok, %{item | permission_level: permission_level, thread_name: thread_name}}
+      end)
+    end
+
+    field :create_item_with_custom_options, :item do
+      arg(:permission_level, :integer)
+      arg(:thread_name, :string)
+
+      permit(
+        action: :create,
+        handle_unauthorized: fn _ ->
+          {:error, %{message: "Cannot create item", code: "CREATE_FORBIDDEN"}}
+        end
+      )
+
+      middleware(Permit.Absinthe.Middleware.LoadAndAuthorize)
+
+      resolve(fn args, %{context: %{current_user: current_user}} ->
+        if current_user do
+          {:ok,
+           %Item{
+             permission_level: args.permission_level,
+             thread_name: args.thread_name,
+             owner_id: current_user.id
+           }}
+        else
+          {:error, "No user"}
+        end
       end)
     end
   end
