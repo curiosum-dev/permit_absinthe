@@ -70,7 +70,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
              arity
            ) do
         {:authorized, resource} ->
-          wrap_authorized_response(resource, field_meta)
+          wrap_authorized_response(resource, field_meta, resolution_context.resolution)
 
         :unauthorized ->
           handle_unauthorized(resolution_context, field_meta)
@@ -91,8 +91,9 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
       resource_module: type_meta[:schema],
       authorization_module: authorization_module,
       base_query:
-        field_meta |> get_field(:base_query) |> get_fn_from_ast(1) || (&Helpers.base_query/1),
-      finalize_query: field_meta |> get_field(:finalize_query) |> get_fn_from_ast(2)
+        field_meta |> get_field(:base_query) |> get_fn_from_ast(1, resolution) ||
+          (&Helpers.base_query/1),
+      finalize_query: field_meta |> get_field(:finalize_query) |> get_fn_from_ast(2, resolution)
     }
   end
 
@@ -104,11 +105,20 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     end
   end
 
-  defp get_fn_from_ast(value, arity \\ 1)
+  defp get_fn_from_ast(value, arity, resolution)
 
-  defp get_fn_from_ast(f, arity) when is_function(f, arity), do: f
+  defp get_fn_from_ast(f, arity, _resolution) when is_function(f, arity), do: f
 
-  defp get_fn_from_ast({:fn, _meta, _clauses} = fn_ast, arity) do
+  defp get_fn_from_ast({:fn, _meta, _clauses} = fn_ast, arity, resolution) do
+    schema = resolution && resolution.schema
+
+    fn_ast =
+      if is_atom(schema) do
+        qualify_local_schema_calls(fn_ast, schema)
+      else
+        fn_ast
+      end
+
     with {function, _} <- Code.eval_quoted(fn_ast, []),
          true <- is_function(function, arity) do
       function
@@ -119,10 +129,48 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     _ -> nil
   end
 
-  defp get_fn_from_ast(_, _), do: nil
+  defp get_fn_from_ast({:&, _meta, _clauses} = capture_ast, arity, _resolution) do
+    with {function, _} <- Code.eval_quoted(capture_ast, []),
+         true <- is_function(function, arity) do
+      function
+    else
+      _ -> nil
+    end
+  rescue
+    _ -> nil
+  end
+
+  defp get_fn_from_ast(_, _, _), do: nil
+
+  # Changes from:
+  #
+  # fn %{params: %{owner_id: owner_id}} ->
+  #   get_external_notes(owner_id)
+  # end
+  #
+  # to:
+  #
+  # fn %{params: %{owner_id: owner_id}} ->
+  #   ModuleName.get_external_notes(owner_id)
+  # end
+  defp qualify_local_schema_calls(ast, schema) do
+    Macro.prewalk(ast, fn
+      {name, meta, args} = node when is_atom(name) and is_list(args) ->
+        arity = length(args)
+
+        if function_exported?(schema, name, arity) do
+          {{:., meta, [schema, name]}, meta, args}
+        else
+          node
+        end
+
+      other ->
+        other
+    end)
+  end
 
   defp fetch_subject(context, field_meta) do
-    case field_meta |> get_field(:fetch_subject) |> get_fn_from_ast() do
+    case field_meta |> get_field(:fetch_subject) |> get_fn_from_ast(1, context.resolution) do
       nil ->
         context.resolution.context[:current_user]
 
@@ -136,7 +184,9 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
   end
 
   defp handle_unauthorized(context, field_meta) do
-    case field_meta |> get_field(:handle_unauthorized) |> get_fn_from_ast() do
+    case field_meta
+         |> get_field(:handle_unauthorized)
+         |> get_fn_from_ast(1, context.resolution) do
       nil ->
         message = field_meta[:unauthorized_message] || "Unauthorized"
         {:error, message}
@@ -151,7 +201,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
   end
 
   defp handle_not_found(context, field_meta) do
-    case field_meta |> get_field(:handle_not_found) |> get_fn_from_ast() do
+    case field_meta |> get_field(:handle_not_found) |> get_fn_from_ast(1, context.resolution) do
       nil ->
         {:error, "Not found"}
 
@@ -164,8 +214,8 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     end
   end
 
-  defp wrap_authorized_response(resource, field_meta) do
-    case field_meta |> get_field(:wrap_authorized) |> get_fn_from_ast() do
+  defp wrap_authorized_response(resource, field_meta, resolution) do
+    case field_meta |> get_field(:wrap_authorized) |> get_fn_from_ast(1, resolution) do
       nil ->
         {:ok, resource}
 
@@ -188,7 +238,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
   end
 
   defp authorize_and_load(subject, authorization_module, module, action, context, arity) do
-    case context.field_meta |> get_field(:loader) |> get_fn_from_ast() do
+    case context.field_meta |> get_field(:loader) |> get_fn_from_ast(1, context.resolution) do
       nil ->
         meta = %{
           params: context.params,
@@ -214,21 +264,49 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
             _ -> nil
           end
 
-        cond do
-          is_nil(loaded) ->
+        case {arity, loaded} do
+          {_, nil} ->
             :not_found
 
-          authorization_module.resolver_module().authorized?(
-            subject,
-            authorization_module,
-            loaded,
-            action
-          ) ->
-            {:authorized, loaded}
+          {:all, items} ->
+            items
+            |> normalize_list()
+            |> Enum.filter(
+              &authorization_module.resolver_module().authorized?(
+                subject,
+                authorization_module,
+                &1,
+                action
+              )
+            )
+            |> then(&{:authorized, &1})
 
-          true ->
-            :unauthorized
+          {:one, []} ->
+            :not_found
+
+          {:one, list} when is_list(list) ->
+            authorize_single(subject, authorization_module, action, List.first(list))
+
+          {:one, item} ->
+            authorize_single(subject, authorization_module, action, item)
         end
+    end
+  end
+
+  defp normalize_list(list) when is_list(list), do: list
+  defp normalize_list(nil), do: []
+  defp normalize_list(item), do: [item]
+
+  defp authorize_single(subject, authorization_module, action, item) do
+    if authorization_module.resolver_module().authorized?(
+         subject,
+         authorization_module,
+         item,
+         action
+       ) do
+      {:authorized, item}
+    else
+      :unauthorized
     end
   end
 
