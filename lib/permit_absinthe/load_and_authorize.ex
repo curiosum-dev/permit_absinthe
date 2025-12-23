@@ -142,7 +142,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
 
   defp get_fn_from_ast(_, _, _), do: nil
 
-  # Changes from:
+  # Inside Absinthe Schema module changes from:
   #
   # fn %{params: %{owner_id: owner_id}} ->
   #   get_external_notes(owner_id)
@@ -151,7 +151,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
   # to:
   #
   # fn %{params: %{owner_id: owner_id}} ->
-  #   ModuleName.get_external_notes(owner_id)
+  #   SchemaModule.get_external_notes(owner_id)
   # end
   defp qualify_local_schema_calls(ast, schema) do
     Macro.prewalk(ast, fn
@@ -238,58 +238,73 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
   end
 
   defp authorize_and_load(subject, authorization_module, module, action, context, arity) do
-    case context.field_meta |> get_field(:loader) |> get_fn_from_ast(1, context.resolution) do
-      nil ->
-        meta = %{
-          params: context.params,
-          resolution: context.resolution,
-          base_query: context.base_query,
-          finalize_query: context.finalize_query || fn query, _ctx -> query end
-        }
+    loader = context.field_meta |> get_field(:loader) |> get_fn_from_ast(1, context.resolution)
 
-        authorization_module.resolver_module().resolve(
-          subject,
-          authorization_module,
-          module,
-          action,
-          meta,
-          arity
+    if loader do
+      authorize_loaded_resource(
+        loader,
+        subject,
+        authorization_module,
+        action,
+        context,
+        arity
+      )
+    else
+      resolve_default(subject, authorization_module, module, action, context, arity)
+    end
+  end
+
+  defp resolve_default(subject, authorization_module, module, action, context, arity) do
+    meta = %{
+      params: context.params,
+      resolution: context.resolution,
+      base_query: context.base_query,
+      finalize_query: context.finalize_query || fn query, _ctx -> query end
+    }
+
+    authorization_module.resolver_module().resolve(
+      subject,
+      authorization_module,
+      module,
+      action,
+      meta,
+      arity
+    )
+  end
+
+  defp authorize_loaded_resource(loader_fn, subject, authorization_module, action, context, arity) do
+    loaded =
+      try do
+        loader_fn.(context)
+      rescue
+        _ -> nil
+      end
+
+    case {arity, loaded} do
+      {_, nil} ->
+        :not_found
+
+      {:all, items} ->
+        items
+        |> normalize_list()
+        |> Enum.filter(
+          &authorization_module.resolver_module().authorized?(
+            subject,
+            authorization_module,
+            &1,
+            action
+          )
         )
+        |> then(&{:authorized, &1})
 
-      loader_fn ->
-        loaded =
-          try do
-            loader_fn.(context)
-          rescue
-            _ -> nil
-          end
+      {:one, []} ->
+        :not_found
 
-        case {arity, loaded} do
-          {_, nil} ->
-            :not_found
+      {:one, list} when is_list(list) ->
+        authorize_single(subject, authorization_module, action, List.first(list))
 
-          {:all, items} ->
-            items
-            |> normalize_list()
-            |> Enum.filter(
-              &authorization_module.resolver_module().authorized?(
-                subject,
-                authorization_module,
-                &1,
-                action
-              )
-            )
-            |> then(&{:authorized, &1})
-
-          {:one, []} ->
-            :not_found
-
-          {:one, list} when is_list(list) ->
-            authorize_single(subject, authorization_module, action, List.first(list))
-
-          {:one, item} ->
-            authorize_single(subject, authorization_module, action, item)
-        end
+      {:one, item} ->
+        authorize_single(subject, authorization_module, action, item)
     end
   end
 
