@@ -99,6 +99,40 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       assert {:ok, %{data: %{"itemWithRaisingFetchSubject" => nil}, errors: errors}} = result
       assert length(errors) > 0
     end
+
+    test "works for list fields and prefers custom_user over current_user" do
+      query = """
+      query GetItems {
+        itemsWithCustomSubject {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithCustomSubject" => items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 context: %{custom_user: @custom_user}
+               )
+
+      assert length(items) == 3
+    end
+
+    test "returns unauthorized when fetch_subject yields nil for list field" do
+      query = """
+      query GetItems {
+        itemsWithCustomSubject {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithCustomSubject" => nil}, errors: errors}} =
+               Absinthe.run(query, Permit.AbsintheFakeApp.Schema, context: %{})
+
+      assert Enum.any?(errors, fn err -> err.message =~ "Unauthorized" end)
+    end
   end
 
   describe "base_query option" do
@@ -188,6 +222,26 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       assert {:ok, %{data: %{"itemsWithFinalizeQuery" => items}}} = result
       assert is_list(items)
     end
+
+    test "finalize_query that filters everything returns empty list" do
+      query = """
+      query GetItems($limit: Int, $offset: Int) {
+        itemsWithFinalizeQuery(limit: $limit, offset: $offset) {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithFinalizeQuery" => items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 variables: %{"limit" => 0, "offset" => 0},
+                 context: %{current_user: @admin_user}
+               )
+
+      assert items == []
+    end
   end
 
   describe "handle_unauthorized option" do
@@ -213,6 +267,26 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       error = List.first(errors)
       assert error.message =~ "Custom unauthorized"
       assert error.message =~ "Permit.AbsintheFakeApp.Item"
+    end
+
+    test "custom handler wins over unauthorized_message" do
+      query = """
+      query GetItem($id: ID!) {
+        itemWithHandlerAndMessage(id: $id) {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemWithHandlerAndMessage" => nil}, errors: errors}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 variables: %{"id" => "1"},
+                 context: %{}
+               )
+
+      assert Enum.any?(errors, fn err -> err.message =~ "Handler wins" end)
     end
   end
 
@@ -395,6 +469,94 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       assert {:ok, %{data: %{"itemWithRaisingLoader" => nil}, errors: errors}} = result
       assert length(errors) > 0
     end
+
+    test "custom loader can return a list and filters authorized items" do
+      query = """
+      query GetItems {
+        itemsWithCustomLoader {
+          id
+          ownerId
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithCustomLoader" => items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 context: %{current_user: @admin_user}
+               )
+
+      assert Enum.sort(Enum.map(items, & &1["id"])) == ["101", "102", "103"]
+
+      owner_user = %User{id: 2, roles: ["owner"], permission_level: 1}
+
+      assert {:ok, %{data: %{"itemsWithCustomLoader" => owner_items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 context: %{current_user: owner_user}
+               )
+
+      assert Enum.map(owner_items, & &1["id"]) == ["102"]
+    end
+
+    test "loader that returns nil for list field triggers not_found" do
+      query = """
+      query GetItems {
+        itemsWithNilLoader {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithNilLoader" => nil}, errors: errors}} =
+               Absinthe.run(query, Permit.AbsintheFakeApp.Schema,
+                 context: %{current_user: @admin_user}
+               )
+
+      assert Enum.any?(errors, fn err -> err.message =~ "Not found" end)
+    end
+
+    test "loader that returns empty list for single field returns not_found" do
+      query = """
+      query GetItem {
+        itemWithEmptyListLoader {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemWithEmptyListLoader" => nil}, errors: errors}} =
+               Absinthe.run(query, Permit.AbsintheFakeApp.Schema,
+                 context: %{current_user: @admin_user}
+               )
+
+      assert Enum.any?(errors, fn err -> err.message =~ "Not found" end)
+    end
+
+    test "inline loader can call local helper function in schema module" do
+      query = """
+      query GetItems($ownerId: ID!) {
+        itemsWithLocalHelperLoader(ownerId: $ownerId) {
+          id
+          ownerId
+          threadName
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithLocalHelperLoader" => items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 variables: %{"ownerId" => "2"},
+                 context: %{current_user: @admin_user}
+               )
+
+      assert Enum.map(items, & &1["id"]) == ["901", "902"]
+      assert Enum.uniq(Enum.map(items, & &1["ownerId"])) == ["2"]
+    end
   end
 
   describe "wrap_authorized option" do
@@ -515,6 +677,25 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       assert Enum.any?(errors, fn err ->
                err.message =~ "wrap_authorized function returned invalid type"
              end)
+    end
+
+    test "wrap_authorized runs on list fields" do
+      query = """
+      query GetItems {
+        itemsWithWrappedResponse {
+          id
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithWrappedResponse" => items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 context: %{current_user: @admin_user}
+               )
+
+      assert Enum.map(items, & &1["id"]) == ["202", "201"]
     end
   end
 

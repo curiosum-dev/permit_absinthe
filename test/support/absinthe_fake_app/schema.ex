@@ -10,6 +10,13 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
   import Ecto.Query
 
+  def external_items_for_owner(owner_id) do
+    [
+      %Item{id: 901, owner_id: owner_id, permission_level: 1, thread_name: "external_1"},
+      %Item{id: 902, owner_id: owner_id, permission_level: 1, thread_name: "external_2"}
+    ]
+  end
+
   # Custom types
   object :user do
     field(:id, :id)
@@ -98,6 +105,19 @@ defmodule Permit.AbsintheFakeApp.Schema do
       resolve(fn _, %{context: %{loaded_resources: items}} ->
         {:ok, items}
       end)
+    end
+
+    field :items_with_local_helper_loader, list_of(:item) do
+      arg(:owner_id, non_null(:id))
+
+      permit(
+        action: :read,
+        loader: fn %{params: %{owner_id: owner_id}} ->
+          external_items_for_owner(owner_id)
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
     field :user, :user do
@@ -235,6 +255,83 @@ defmodule Permit.AbsintheFakeApp.Schema do
             owner_id: 1
           }
         end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :items_with_custom_loader, list_of(:item) do
+      permit(
+        action: :read,
+        loader: fn _context ->
+          [
+            %Item{id: 101, owner_id: 1, permission_level: 1, thread_name: "custom_list_admin"},
+            %Item{id: 102, owner_id: 2, permission_level: 1, thread_name: "custom_list_owner"},
+            %Item{id: 103, owner_id: 3, permission_level: 1, thread_name: "custom_list_inspector"}
+          ]
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :items_with_nil_loader, list_of(:item) do
+      permit(
+        action: :read,
+        loader: fn _context -> nil end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_empty_list_loader, :item do
+      arg(:id, :id)
+
+      permit(
+        action: :read,
+        loader: fn _context -> [] end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :items_with_wrapped_response, list_of(:item) do
+      permit(
+        action: :read,
+        loader: fn _context ->
+          [
+            %Item{id: 201, owner_id: 1, permission_level: 1, thread_name: "wrap_1"},
+            %Item{id: 202, owner_id: 1, permission_level: 1, thread_name: "wrap_2"}
+          ]
+        end,
+        wrap_authorized: fn items ->
+          {:ok, Enum.reverse(items)}
+        end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :items_with_custom_subject, list_of(:item) do
+      permit(
+        action: :read,
+        fetch_subject: fn %{resolution: resolution} ->
+          resolution.context[:custom_user] || resolution.context[:current_user]
+        end,
+        base_query: fn _ -> from(i in Item, where: i.permission_level >= 1) end
+      )
+
+      resolve(&PermitAbsinthe.load_and_authorize/2)
+    end
+
+    field :item_with_handler_and_message, :item do
+      arg(:id, non_null(:id))
+
+      permit(
+        action: :read,
+        handle_unauthorized: fn _ -> {:error, "Handler wins"} end,
+        unauthorized_message: "Should not be used",
+        base_query: fn %{params: %{id: id}} -> from(i in Item, where: i.id == ^id) end
       )
 
       resolve(&PermitAbsinthe.load_and_authorize/2)
