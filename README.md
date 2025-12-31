@@ -81,6 +81,23 @@ field :create_post, :post do
 end
 ```
 
+### Customisation options
+
+The `permit` macro supports a set of options that let you customize how Permit Absinthe loads data, scopes Ecto queries, and formats success/errors.
+
+- **`:fetch_subject`**: function to fetch the “subject” (usually current user) from the resolution context (defaults to `resolution.context[:current_user]`).
+- **`:base_query`**: function to build a custom Ecto base query *before* Permit scoping is applied (useful for soft deletes / tenancy / additional filters).
+- **`:finalize_query`**: function to post-process the Ecto query *after* Permit scoping is applied (useful for sorting / pagination).
+- **`:handle_unauthorized`**: function called when authorization fails or when the subject is missing; should return `{:error, message}` (or `{:ok, value}` if you intentionally want to return a safe fallback).
+- **`:handle_not_found`**: function called when the resource cannot be found; should return `{:error, message}`.
+- **`:unauthorized_message`**: custom string message used on unauthorized access (only when `:handle_unauthorized` is not set).
+- **`:loader`**: function to load data from a custom source (external API, cache, etc.) instead of the default Ecto/Dataloader-based loading.
+- **`:wrap_authorized`**: function called on successful authorization; should return `{:ok, value}` (or `{:error, message}`) to reshape/redact the returned data.
+
+#### Important caveat about callbacks
+
+Permit Absinthe captures callback functions passed to `permit` (for example `permit loader: &external_notes_loader/1`) as AST at compile time to avoid Absinthe boilerplate. References, function calls, and aliases are supported, but **functions defined in your schema module must be public** (use `def`, not `defp`).
+
 ### Using authorization resolvers
 
 Permit.Absinthe provides resolver functions to load and authorize resources automatically:
