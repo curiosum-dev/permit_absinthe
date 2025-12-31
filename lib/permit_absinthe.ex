@@ -184,9 +184,11 @@ defmodule Permit.Absinthe do
       :wrap_authorized
     ]
 
+    permit_opts = Keyword.take(opts, config_opts)
+
     quote do
       meta(
-        permit: unquote(Keyword.take(opts, config_opts)),
+        permit: unquote(permit_opts),
         authorization_module: unquote(authorization_module)
       )
     end

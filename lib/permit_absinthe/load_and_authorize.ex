@@ -129,7 +129,16 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     _ -> nil
   end
 
-  defp get_fn_from_ast({:&, _meta, _clauses} = capture_ast, arity, _resolution) do
+  defp get_fn_from_ast({:&, _meta, _clauses} = capture_ast, arity, resolution) do
+    schema = resolution && resolution.schema
+
+    capture_ast =
+      if is_atom(schema) do
+        qualify_local_capture(capture_ast, schema)
+      else
+        capture_ast
+      end
+
     with {function, _} <- Code.eval_quoted(capture_ast, []),
          true <- is_function(function, arity) do
       function
@@ -142,18 +151,14 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
 
   defp get_fn_from_ast(_, _, _), do: nil
 
-  # Inside Absinthe Schema module changes from:
-  #
-  # fn %{params: %{owner_id: owner_id}} ->
-  #   get_external_notes(owner_id)
-  # end
-  #
-  # to:
-  #
-  # fn %{params: %{owner_id: owner_id}} ->
-  #   SchemaModule.get_external_notes(owner_id)
-  # end
   defp qualify_local_schema_calls(ast, schema) do
+    # When users pass inline anonymous functions to `permit` (e.g. `base_query: fn ctx -> ... end`)
+    # those functions may call helpers defined in the schema module (e.g. `notes_base_query(ctx)`).
+    #
+    # Because we capture/eval the callback AST, we rewrite *local* calls into remote calls
+    # (`SchemaModule.notes_base_query(...)`) so they can be resolved at runtime.
+    #
+    # Note: the target functions must be public (`def`) for `function_exported?/3` to match.
     Macro.prewalk(ast, fn
       {name, meta, args} = node when is_atom(name) and is_list(args) ->
         arity = length(args)
@@ -168,6 +173,26 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
         other
     end)
   end
+
+  defp qualify_local_capture(
+         {:&, cap_meta, [{:/, slash_meta, [{name, name_meta, ctx}, arity]}]},
+         schema
+       )
+       when is_atom(name) and is_integer(arity) do
+    # Users commonly pass captures like `&my_loader/1` or `&my_handler/1`.
+    # If that capture refers to a function defined in the schema module, it starts as a *local*
+    # capture (no module qualifier). Here we qualify it to `&SchemaModule.my_loader/1`.
+    #
+    # Note: private functions (`defp`) cannot be captured remotely; they must be public (`def`).
+    if function_exported?(schema, name, arity) and (ctx == nil or ctx == Elixir) do
+      remote_fun = {{:., name_meta, [schema, name]}, name_meta, []}
+      {:&, cap_meta, [{:/, slash_meta, [remote_fun, arity]}]}
+    else
+      {:&, cap_meta, [{:/, slash_meta, [{name, name_meta, ctx}, arity]}]}
+    end
+  end
+
+  defp qualify_local_capture(other, _schema), do: other
 
   defp fetch_subject(context, field_meta) do
     case field_meta |> get_field(:fetch_subject) |> get_fn_from_ast(1, context.resolution) do
