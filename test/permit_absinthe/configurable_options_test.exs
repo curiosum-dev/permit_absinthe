@@ -470,6 +470,29 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       assert length(errors) > 0
     end
 
+    test "local function capture loader works without schema module qualification" do
+      query = """
+      query GetItems($ownerId: ID!) {
+        itemsWithLocalCaptureLoader(ownerId: $ownerId) {
+          id
+          ownerId
+          threadName
+        }
+      }
+      """
+
+      assert {:ok, %{data: %{"itemsWithLocalCaptureLoader" => items}}} =
+               Absinthe.run(
+                 query,
+                 Permit.AbsintheFakeApp.Schema,
+                 variables: %{"ownerId" => "1"},
+                 context: %{current_user: @admin_user}
+               )
+
+      assert is_list(items)
+      assert Enum.any?(items, &(&1["threadName"] == "external_1"))
+    end
+
     test "custom loader can return a list and filters authorized items" do
       query = """
       query GetItems {
