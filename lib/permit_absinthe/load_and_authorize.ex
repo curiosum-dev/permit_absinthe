@@ -75,13 +75,11 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     end
   end
 
-  defp determine_arity(resolution) do
-    with %{definition: %{schema_node: schema_node}} <- resolution do
-      if has_list_type?(schema_node.type), do: :all, else: :one
-    else
-      _ -> :one
-    end
+  defp determine_arity(%{definition: %{schema_node: schema_node}} = _resolution) do
+    if has_list_type?(schema_node.type), do: :all, else: :one
   end
+
+  defp determine_arity(_), do: :one
 
   # Check if a type contains a List at any level of wrapping (NonNull, etc.)
   defp has_list_type?(%Absinthe.Type.List{}), do: true
