@@ -48,6 +48,24 @@ defmodule Permit.AbsintheFakeApp.Schema do
       resolve(&PermitAbsinthe.load_and_authorize/2)
     end
 
+    # Test field with non_null(list_of(...)) wrapper
+    field :items_non_null, non_null(list_of(:item)), directives: [:load_and_authorize] do
+      permit(action: :read)
+
+      resolve(fn _, %{context: %{loaded_resources: items}} ->
+        {:ok, items}
+      end)
+    end
+
+    # Test field with list_of(non_null(...)) wrapper
+    field :items_inner_non_null, list_of(non_null(:item)), directives: [:load_and_authorize] do
+      permit(action: :read)
+
+      resolve(fn _, %{context: %{loaded_resources: items}} ->
+        {:ok, items}
+      end)
+    end
+
     field :item_by_thread_name, :item do
       arg(:thread_name, non_null(:string))
 

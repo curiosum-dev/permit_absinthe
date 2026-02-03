@@ -97,6 +97,42 @@ defmodule Permit.AbsintheFakeApp.TestHelpers do
   end
 
   @doc """
+  Gets all items through a GraphQL query with non_null(list_of(:item)) type wrapper.
+  """
+  def get_items_non_null(current_user \\ nil) do
+    query = """
+    query GetItemsNonNull {
+      itemsNonNull {
+        id
+        permission_level
+        thread_name
+        owner_id
+      }
+    }
+    """
+
+    query_gql(query, current_user: current_user)
+  end
+
+  @doc """
+  Gets all items through a GraphQL query with list_of(non_null(:item)) type wrapper.
+  """
+  def get_items_inner_non_null(current_user \\ nil) do
+    query = """
+    query GetItemsInnerNonNull {
+      itemsInnerNonNull {
+        id
+        permission_level
+        thread_name
+        owner_id
+      }
+    }
+    """
+
+    query_gql(query, current_user: current_user)
+  end
+
+  @doc """
   Gets current user information with nested items via Dataloader.
   """
   def get_me(current_user) do
