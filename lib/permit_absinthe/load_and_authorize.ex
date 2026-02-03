@@ -50,11 +50,7 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
     authorization_module =
       Meta.get_field_meta_from_resolution(resolution, :authorization_module)
 
-    arity =
-      case resolution.definition.schema_node.type do
-        %Absinthe.Type.List{} -> :all
-        _ -> :one
-      end
+    arity = determine_arity(resolution)
 
     case authorization_module.resolver_module().resolve(
            resolution.context[:current_user],
@@ -78,4 +74,17 @@ defmodule Permit.Absinthe.LoadAndAuthorize do
         {:error, "Not found"}
     end
   end
+
+  defp determine_arity(resolution) do
+    with %{definition: %{schema_node: schema_node}} <- resolution do
+      if has_list_type?(schema_node.type), do: :all, else: :one
+    else
+      _ -> :one
+    end
+  end
+
+  # Check if a type contains a List at any level of wrapping (NonNull, etc.)
+  defp has_list_type?(%Absinthe.Type.List{}), do: true
+  defp has_list_type?(%{of_type: inner_type}), do: has_list_type?(inner_type)
+  defp has_list_type?(_), do: false
 end

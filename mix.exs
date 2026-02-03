@@ -34,8 +34,8 @@ defmodule Permit.Absinthe.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:permit, "~> 0.2.1"},
-      {:permit_ecto, "~> 0.2.3"},
+      {:permit, "~> 0.3.3"},
+      {:permit_ecto, "~> 0.2.4"},
       {:absinthe, "~> 1.7"},
       {:dataloader, "~> 2.0"},
       {:postgrex, "~> 0.21", only: :test},
