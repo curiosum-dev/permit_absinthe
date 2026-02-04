@@ -215,4 +215,93 @@ defmodule Permit.AbsintheFakeAppTest do
       # so we don't need to test that case
     end
   end
+
+  describe "nested type wrappers (issue #6)" do
+    test "correctly detects arity :all for non_null(list_of(:item))", %{
+      users: [_admin, owner, _inspector]
+    } do
+      # This tests that non_null(list_of(:item)) is correctly identified as a list type
+      # The old code would fail to unwrap nested type wrappers and treat this as :one arity
+      assert {:ok, result} = TestHelpers.get_items_non_null(owner)
+
+      # Should return a list of items that the owner has access to
+      assert is_list(result.data["itemsNonNull"])
+      assert Enum.count(result.data["itemsNonNull"]) > 0
+
+      owner_id = Integer.to_string(owner.id)
+      assert Enum.all?(result.data["itemsNonNull"], &(&1["owner_id"] == owner_id))
+    end
+
+    test "correctly detects arity :all for list_of(non_null(:item))", %{
+      users: [_admin, owner, _inspector]
+    } do
+      # This tests that list_of(non_null(:item)) is correctly identified as a list type
+      assert {:ok, result} = TestHelpers.get_items_inner_non_null(owner)
+
+      # Should return a list of items that the owner has access to
+      assert is_list(result.data["itemsInnerNonNull"])
+      assert Enum.count(result.data["itemsInnerNonNull"]) > 0
+
+      owner_id = Integer.to_string(owner.id)
+      assert Enum.all?(result.data["itemsInnerNonNull"], &(&1["owner_id"] == owner_id))
+    end
+
+    test "non_null wrapped lists return correct data for admin", %{users: [admin, _, _]} do
+      # Admin should be able to see all items
+      assert {:ok, result} = TestHelpers.get_items_non_null(admin)
+
+      assert is_list(result.data["itemsNonNull"])
+      # We know there are 3 items in the test data
+      assert Enum.count(result.data["itemsNonNull"]) == 3
+    end
+
+    test "non_null wrapped lists enforce authorization correctly", %{
+      users: [_admin, owner, _inspector]
+    } do
+      # Owner should only see their own items
+      assert {:ok, result} = TestHelpers.get_items_non_null(owner)
+
+      assert is_list(result.data["itemsNonNull"])
+      # Owner owns only item 2
+      assert Enum.count(result.data["itemsNonNull"]) == 1
+      assert hd(result.data["itemsNonNull"])["id"] == "2"
+    end
+
+    test "inspector can see all items with non_null wrapped lists", %{
+      users: [_admin, _owner, inspector]
+    } do
+      # Inspector has read_all permission and should see all items
+      assert {:ok, result} = TestHelpers.get_items_non_null(inspector)
+
+      assert is_list(result.data["itemsNonNull"])
+      assert Enum.count(result.data["itemsNonNull"]) == 3
+    end
+
+    test "list_of(non_null(...)) enforces authorization correctly", %{
+      users: [_admin, owner, _inspector]
+    } do
+      # Owner should only see their own items
+      assert {:ok, result} = TestHelpers.get_items_inner_non_null(owner)
+
+      assert is_list(result.data["itemsInnerNonNull"])
+      # Owner owns only item 2
+      assert Enum.count(result.data["itemsInnerNonNull"]) == 1
+      assert hd(result.data["itemsInnerNonNull"])["id"] == "2"
+    end
+
+    test "type metadata is correctly retrieved for nested wrapped types", %{
+      users: [admin, _, _]
+    } do
+      # This test verifies that the recursive unwrap_type function works correctly
+      # If type metadata lookup fails, the query would fail with an error
+      assert {:ok, result} = TestHelpers.get_items_non_null(admin)
+
+      # The fact that we get successful results means:
+      # 1. Type metadata was correctly retrieved (permit macro data)
+      # 2. Authorization module was found
+      # 3. Resolver module was resolved correctly
+      assert is_list(result.data["itemsNonNull"])
+      refute Map.has_key?(result, :errors)
+    end
+  end
 end
