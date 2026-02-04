@@ -30,13 +30,27 @@ defmodule Permit.Absinthe.Schema.Helpers do
 
   @doc """
   Returns a base query for a given resolution.
+
+  If a custom base_query function is provided in field_meta, it will be used.
+  Otherwise, falls back to the default behavior.
   """
-  def base_query(%{
-        resource_module: resource_module,
-        resolution: resolution,
-        params: params
-      }) do
+  def base_query(
+        %{
+          resource_module: resource_module,
+          resolution: resolution,
+          params: params
+        } = context
+      ) do
     field_meta = Meta.get_field_meta_from_resolution(resolution, :permit)
+
+    if is_function(field_meta[:base_query], 1) do
+      field_meta[:base_query].(context)
+    else
+      default_base_query(resource_module, params, field_meta)
+    end
+  end
+
+  defp default_base_query(resource_module, params, field_meta) do
     param = field_meta[:id_param_name] || :id
     field = field_meta[:id_struct_field_name] || :id
 
