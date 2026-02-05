@@ -21,23 +21,22 @@ defmodule Permit.Absinthe.Schema.Meta do
       end
   """
   def get_type_meta_from_resolution(resolution, meta_keys) when is_list(meta_keys) do
-    with %{definition: %{schema_node: schema_node}, schema: schema} <- resolution do
-      # Recursively unwrap List and NonNull wrappers to get the base type identifier
-      type_ref = unwrap_type(schema_node.type)
-      type = schema.__absinthe_type__(type_ref)
+    case resolution do
+      %{definition: %{schema_node: schema_node}, schema: schema} ->
+        # Recursively unwrap List and NonNull wrappers to get the base type identifier
+        type_ref = unwrap_type(schema_node.type)
+        type = schema.__absinthe_type__(type_ref)
 
-      case type do
-        nil ->
-          nil
+        case type do
+          %{__private__: private} when not is_nil(private) ->
+            get_in(private[:meta] || [], meta_keys)
 
-        type ->
-          case type.__private__ do
-            nil -> nil
-            private -> get_in(private[:meta] || [], meta_keys)
-          end
-      end
-    else
-      _ -> nil
+          _ ->
+            nil
+        end
+
+      _ ->
+        nil
     end
   end
 
@@ -56,9 +55,8 @@ defmodule Permit.Absinthe.Schema.Meta do
   end
 
   def get_type_name(resolution) do
-    with %{definition: %{schema_node: schema_node}} <- resolution do
-      unwrap_type(schema_node.type)
-    else
+    case resolution do
+      %{definition: %{schema_node: schema_node}} -> unwrap_type(schema_node.type)
       _ -> nil
     end
   end
