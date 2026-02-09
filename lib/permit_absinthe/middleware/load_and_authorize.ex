@@ -1,38 +1,46 @@
 defmodule Permit.Absinthe.Middleware.LoadAndAuthorize do
   @moduledoc """
-  Middleware for loading and authorizing resources in Absinthe.
+  Middleware for loading and authorizing resources in Absinthe. Uses the raw
+  resolver function defined in `Permit.Absinthe.Resolvers.LoadAndAuthorize` to
+  put the resolution outcome in `:loaded_resource` or `:loaded_resources`
+  (depending on whether it's an index-like or a single-item action).
 
-  This middleware is used to load and authorize resources in Absinthe.
-  It can be used as a middleware in Absinthe schema definitions.
+  Useful in mutations where it's not enough to just load a resource, or whenever
+  you otherwise need to process it after loading.
 
-  ## Example
+  ## Usage, mechanism and configuration
 
-    ```elixir
-    mutation do
-      @desc "Update an article"
-      field :update_article, :article do
-        permit action: :update
+  See `Permit.Absinthe.Resolvers.LoadAndAuthorize` for details on resolution of
+  authorized records in Permit.Absinthe. The middleware delegates
 
-        arg(:id, non_null(:id))
-        arg(:name, non_null(:string))
-        arg(:content, non_null(:string))
+  ### Example
 
-        middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+  ```elixir
+  mutation do
+    @desc "Update an article"
+    field :update_article, :article do
+      permit action: :update
 
-        resolve(fn _, %{name: name, content: content}, %{context: context} ->
-          case Blog.Content.update_article(context.loaded_resource, %{name: name, content: content}) do
-            {:ok, article} ->
-              {:ok, article}
+      arg(:id, non_null(:id))
+      arg(:name, non_null(:string))
+      arg(:content, non_null(:string))
 
-            {:error, changeset} ->
-              {:error, "Could not update article"}
-          end
-        end)
-      end
+      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+
+      resolve(fn _, %{name: name, content: content}, %{context: context} ->
+        case Blog.Content.update_article(context.loaded_resource, %{name: name, content: content}) do
+          {:ok, article} ->
+            {:ok, article}
+
+          {:error, changeset} ->
+            {:error, "Could not update article"}
+        end
+      end)
     end
-    ```
+  end
+  ```
   """
-  alias Permit.Absinthe.LoadAndAuthorize
+  alias Permit.Absinthe.Resolvers.LoadAndAuthorize
 
   @behaviour Absinthe.Middleware
 

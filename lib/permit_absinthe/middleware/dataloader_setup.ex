@@ -6,23 +6,56 @@ defmodule Permit.Absinthe.Middleware.DataloaderSetup do
   before we know anything about field-specific authorization. This middleware fixes that
   by creating dataloaders on-demand with the right authorization context.
 
-  Add it to top-level fields:
+  ## Usage
+
+  Using the `Permit.Absinthe` mixin in your schema, the `authorized_dataloader/3` function
+  is imported and available as the resolver function. The `Absinthe.Middleware.Dataloader`
+  plugin must also be included.
+
+  ```
+  # Absinthe schema module
+  defmodule MyAppWeb.Schema do
+    use Permit.Absinthe, authorization_module: MyApp.Authorization
+
+    def plugins do
+      [Absinthe.Middleware.Dataloader | Absinthe.Plugin.defaults()]
+    end
+  end
+  ```
+
+  To use the authorization-aware dataloader resolver with an associated field, first
+  add the middleware and a `permit` annotation to the field that resolves the parent
+  type. Every field whose resolved type contains fields using `authorized_dataloader/3`
+  must have this middleware attached.
 
       field :me, :user do
+        permit action: :read
         middleware Permit.Absinthe.Middleware.DataloaderSetup
         resolve &UserResolver.me/3
       end
 
-  Then use the configured sources in nested resolvers:
+  Since the middleware we configured above only configures the authorization context,
+  we now need to use an actual resolver function that leverages it.
+  For this purpose, use the `authorized_dataloader/3` resolver on the associated
+  object's fields.
+
+  The object type itself needs a `permit(schema: ...)` annotation so the dataloader
+  knows which Ecto schema to authorize against:
 
       object :user do
+        permit schema: User
+
         field :articles, list_of(:article) do
-          resolve &Permit.Absinthe.Resolvers.Dataloader.authorized_dataloader/3
+          resolve &authorized_dataloader/3
         end
       end
 
-  Each dataloader source gets a unique key like `"MyApp.Auth:me:read"` so different
-  authorization contexts don't step on each other.
+  Each dataloader source gets a unique key like `"MyApp.Authorization:me:read"` so
+  different authorization contexts don't step on each other. This prevents, for
+  example, an `:admin` field's broader authorization scope from leaking into a `:me`
+  field's restricted scope within the same request. Resolvers look up their source
+  key dynamically via a lookup key like `"MyApp.Authorization:me"`, so the action in
+  the source key reflects whatever was configured for the field.
   """
 
   @behaviour Absinthe.Middleware

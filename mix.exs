@@ -2,20 +2,18 @@ defmodule Permit.Absinthe.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/curiosum-dev/permit_absinthe"
+  @version "0.1.0"
 
   def project do
     [
       app: :permit_absinthe,
-      version: "0.1.0",
+      version: @version,
       elixir: "~> 1.15",
       start_permanent: Mix.env() == :prod,
       deps: deps(),
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
-      docs: [
-        main: "Permit.Absinthe",
-        extras: ["README.md", "LICENSE"]
-      ],
+      docs: docs(),
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -43,6 +41,32 @@ defmodule Permit.Absinthe.MixProject do
       {:dialyxir, "~> 1.3", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false}
+    ]
+  end
+
+  defp docs do
+    [
+      licenses: ["MIT"],
+      links: %{"GitHub" => "https://github.com/curiosum-dev/permit_absinthe"},
+      main: "Permit.Absinthe",
+      extras: ["README.md", "LICENSE"],
+      maintainers: ["Michał Buszkiewicz"],
+      source_ref: "v#{@version}",
+      source_url: @source_url,
+      groups_for_modules: [
+        "Load & Authorize": [
+          Permit.Absinthe.Resolvers.LoadAndAuthorize,
+          Permit.Absinthe.Middleware.LoadAndAuthorize
+        ],
+        Dataloader: [
+          Permit.Absinthe.Resolvers.Dataloader,
+          Permit.Absinthe.Middleware.DataloaderSetup
+        ],
+        "Schema setup": [
+          Permit.Absinthe.Schema.Meta,
+          Permit.Absinthe.Schema.Prototype
+        ]
+      ]
     ]
   end
 
