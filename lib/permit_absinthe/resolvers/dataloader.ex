@@ -29,7 +29,7 @@ defmodule Permit.Absinthe.Resolvers.Dataloader do
   end
 
   @doc false
-  @spec ensure_dataloader_setup(Absinthe.Resolution.t()) :: {Absinthe.Resolution.t(), String.t()}
+  @spec ensure_dataloader_setup(Absinthe.Resolution.t()) :: {Absinthe.Resolution.t(), tuple()}
   def ensure_dataloader_setup(resolution) do
     field_name = resolution.definition.schema_node.identifier
     field_meta = Meta.get_field_meta_from_resolution(resolution, :permit) || []
@@ -39,8 +39,8 @@ defmodule Permit.Absinthe.Resolvers.Dataloader do
     dataloader = get_dataloader(resolution)
 
     action = field_meta[:action] || Helpers.default_action(resolution)
-    source_key = "#{inspect(authorization_module)}:#{field_name}:#{action}"
-    lookup_key = "#{inspect(authorization_module)}:#{field_name}"
+    source_key = {authorization_module, field_name, action}
+    lookup_key = {authorization_module, field_name}
 
     # Fast path: no source creation if already registered.
     dataloader_source =
