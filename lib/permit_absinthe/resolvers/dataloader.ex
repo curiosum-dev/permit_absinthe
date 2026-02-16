@@ -14,7 +14,7 @@ defmodule Permit.Absinthe.Resolvers.Dataloader do
   # But since the original Absinthe.Resolution.Helpers.dataloader/1 function itself
   # ignores a dialyzer error, I feel totally okay to do it here, too - until Elixir
   # finally ditches the damn thing for good in favour of its own typing system.
-  @dialyzer {:no_return, authorized_dataloader: 3}
+  @dialyzer {:nowarn_function, authorized_dataloader: 3}
   @spec authorized_dataloader(
           Absinthe.Resolution.source(),
           Absinthe.Resolution.arguments(),
