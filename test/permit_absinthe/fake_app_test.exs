@@ -102,7 +102,7 @@ defmodule Permit.AbsintheFakeAppTest do
       items = result[:data]["me"]["items"]
       subitems = Enum.at(items, 0)["subitems"]
 
-      assert Enum.count(items) > 0
+      refute Enum.empty?(items)
       assert Enum.all?(items, &(String.to_integer(&1["owner_id"]) == owner.id))
 
       # Owner should have access to subitems 3 and 4 from item 2
@@ -226,7 +226,7 @@ defmodule Permit.AbsintheFakeAppTest do
 
       # Should return a list of items that the owner has access to
       assert is_list(result.data["itemsNonNull"])
-      assert Enum.count(result.data["itemsNonNull"]) > 0
+      refute Enum.empty?(result.data["itemsNonNull"])
 
       owner_id = Integer.to_string(owner.id)
       assert Enum.all?(result.data["itemsNonNull"], &(&1["owner_id"] == owner_id))
@@ -240,7 +240,7 @@ defmodule Permit.AbsintheFakeAppTest do
 
       # Should return a list of items that the owner has access to
       assert is_list(result.data["itemsInnerNonNull"])
-      assert Enum.count(result.data["itemsInnerNonNull"]) > 0
+      refute Enum.empty?(result.data["itemsInnerNonNull"])
 
       owner_id = Integer.to_string(owner.id)
       assert Enum.all?(result.data["itemsInnerNonNull"], &(&1["owner_id"] == owner_id))

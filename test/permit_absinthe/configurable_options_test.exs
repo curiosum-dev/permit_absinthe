@@ -76,7 +76,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithCustomSubject" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
     end
 
     test "handles fetch_subject that raises exception" do
@@ -97,7 +97,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithRaisingFetchSubject" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
     end
 
     test "works for list fields and prefers custom_user over current_user" do
@@ -403,7 +403,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithCustomLoader" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
     end
 
     test "custom loader denies access to regular user without permission" do
@@ -424,7 +424,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithCustomLoader" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
     end
 
     test "loader that returns nil results in not_found error" do
@@ -445,7 +445,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithNilLoader" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
       assert Enum.any?(errors, fn err -> err.message =~ "Not found" end)
     end
 
@@ -467,7 +467,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithRaisingLoader" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
     end
 
     test "local function capture loader works without schema module qualification" do
@@ -623,7 +623,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithErrorWrap" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
       assert Enum.any?(errors, fn err -> err.message =~ "Custom error from wrap" end)
     end
 
@@ -645,7 +645,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithRaisingWrapAuthorized" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
 
       assert Enum.any?(errors, fn err ->
                err.message =~ "wrap_authorized function raised an exception"
@@ -670,7 +670,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithInvalidWrapReturn" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
 
       assert Enum.any?(errors, fn err ->
                err.message =~ "wrap_authorized function returned invalid type"
@@ -695,7 +695,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithInvalidWrapReturnTuple" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
 
       assert Enum.any?(errors, fn err ->
                err.message =~ "wrap_authorized function returned invalid type"
@@ -743,7 +743,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
       assert {:ok, %{data: %{"itemWithRaisingUnauthorizedHandler" => nil}, errors: errors}} =
                result
 
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
       assert Enum.any?(errors, fn err -> err.message =~ "Unauthorized" end)
     end
   end
@@ -767,7 +767,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"itemWithRaisingNotFoundHandler" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
       assert Enum.any?(errors, fn err -> err.message =~ "Not found" end)
     end
   end
@@ -840,7 +840,7 @@ defmodule Permit.Absinthe.ConfigurableOptionsTest do
         )
 
       assert {:ok, %{data: %{"createItemWithCustomOptions" => nil}, errors: errors}} = result
-      assert length(errors) > 0
+      refute Enum.empty?(errors)
 
       error = List.first(errors)
       assert error.message =~ "Cannot create item"
