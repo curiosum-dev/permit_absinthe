@@ -14,7 +14,7 @@
 Permit.Absinthe provides integration between the [Permit](https://hexdocs.pm/permit) authorization library and [Absinthe](https://hexdocs.pm/absinthe) GraphQL for Elixir.
 
 [![Hex version badge](https://img.shields.io/hexpm/v/permit_absinthe.svg)](https://hex.pm/packages/permit_absinthe)
-[![Version badge](https://img.shields.io/badge/Version-0.1.0-blue.svg)](https://github.com/curiosum-dev/permit_absinthe)
+[![Version badge](https://img.shields.io/badge/Version-0.2.0-blue.svg)](https://github.com/curiosum-dev/permit_absinthe)
 [![Actions Status](https://github.com/curiosum-dev/permit_absinthe/actions/workflows/elixir.yml/badge.svg)](https://github.com/curiosum-dev/permit_absinthe/actions)
 [![License badge](https://img.shields.io/hexpm/l/permit.svg)](https://github.com/curiosum-dev/permit_absinthe/blob/master/LICENSE)
 
