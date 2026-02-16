@@ -26,7 +26,7 @@ by adding `permit_absinthe` to your list of dependencies in `mix.exs`:
 ```elixir
 def deps do
   [
-    {:permit_absinthe, "~> 0.1.0"}
+    {:permit_absinthe, "~> 0.2.0"}
   ]
 end
 ```
@@ -43,7 +43,31 @@ be found at <https://hexdocs.pm/permit_absinthe>.
 - Automatically check permissions for queries and mutations
 - Resolvers for automatic resource loading and authorization
 
+## How it works
+
+Permit.Absinthe applies Permit rules using three pieces of information on each field resolution.
+* The **subject** is who performs the action (usually `resolution.context[:current_user]`).
+* The **action** is what is being attempted (for example `:read`, `:create`, `:update`).
+* The **resource** is the schema/module (or loaded struct) the action targets.
+
+If `can(subject) |> action?(resource)` is allowed, the resolver continues; otherwise it returns an authorization error (or your custom handler result).
+
+Ecto is the source of truth for matching permission conditions against data, and it constructs queries based on defined permissions to fetch records or lists of records. See [Permit.Ecto docs](https://hexdocs.pm/permit_ecto) for more on this.
+
+
 ## Usage
+
+### Which integration should I pick?
+
+Here's a quick table outlining which feature you should pick when plugging in Permit authorization into a specific Absinthe use case.
+
+| If you need... | Use | Why |
+|---|---|---|
+| Simple query resolver | `resolve &load_and_authorize/2` | Lowest boilerplate for standard resource reads |
+| &bull; Query resolver + custom processing<br>&bull; Mutation  | `Permit.Absinthe.Middleware.LoadAndAuthorize` | Keeps full resolver control while reusing Permit loading/authorization |
+| Association loading | `resolve &authorized_dataloader/3` | Preserves Dataloader batching and enforces Permit rules |
+| Authorization declared explicitly in schema directives | `directives: [:load_and_authorize]` | Makes authorization behavior more visible at schema level |
+| Non-standard authorization or loading flow | Vanilla Permit calls inside your resolver | Maximum flexibility for advanced/custom cases |
 
 ### Map GraphQL types to Permit resources
 
@@ -53,10 +77,6 @@ In your Absinthe schema, define metadata that maps your GraphQL types to Ecto sc
 use Permit.Absinthe, authorization_module: MyApp.Authorization
 
 object :post do
-  # Equivalent under the hood to:
-  #
-  #   meta permit: [schema: MyApp.Blog.Post], authorization_module: MyApp.Authorization
-  #
   permit schema: MyApp.Blog.Post
 
   field :id, :id
@@ -144,7 +164,7 @@ end
 
 ### Load & authorize using Absinthe Middleware
 
-In mutations, or whenever  custom and more complex resolution logic needs to be used, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
+In mutations, or when custom and more complex resolution logic is required, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
 
 ```elixir
   query do
@@ -206,6 +226,40 @@ In mutations, or whenever  custom and more complex resolution logic needs to be 
   end
 ```
 
+### Dataloader integration
+
+If you already use Absinthe + Dataloader, you usually get efficient batch loading but still need to ensure each loaded record is filtered through your authorization rules.  
+`permit_absinthe` solves that by providing `authorized_dataloader/3`: a resolver that keeps Dataloader batching and applies Permit authorization in the same flow.
+
+To set it up:
+
+1. Keep the standard Absinthe dataloader plugin in your schema.
+2. Add `permit` metadata to the type/field so Permit knows what resource/action to authorize (defaulting to `:read`).
+3. Use `resolve &authorized_dataloader/3` for associations you want to batch-load safely.
+
+Schema setup:
+
+```elixir
+def plugins do
+  [Absinthe.Middleware.Dataloader | Absinthe.Plugin.defaults()]
+end
+```
+
+Field setup:
+
+```elixir
+object :item do
+  permit schema: MyApp.Item
+
+  field :subitems, list_of(:subitem) do
+    permit action: :read
+    resolve &authorized_dataloader/3
+  end
+end
+```
+
+Compared to Permit.Absinthe v0.1, this means the removal of `Permit.Absinthe.Middleware.DataloaderSetup` altogether. The resolver function takes care of creating and managing necessary dataloader source structures in the Absinthe resolution.
+
 ### Authorizing with GraphQL directives
 
 Permit.Absinthe provides the `:load_and_authorize` directive to automatically load and authorize resources in your GraphQL fields.
@@ -251,6 +305,17 @@ defmodule MyApp.Resolvers.Post do
   end
 end
 ```
+
+### Default behaviour (quick reference)
+
+| Area | Default |
+|---|---|
+| Action selection | Queries default to `:read`; mutations must set `permit action: ...` explicitly. |
+| Subject lookup | Uses `resolution.context[:current_user]` unless you provide `fetch_subject`. |
+| Resource mapping | Uses the schema set via `permit schema: ...` on the GraphQL type. |
+| Single-resource miss | Returns `{:error, "Not found"}` when the record does not exist. |
+| Unauthorized access | Returns `{:error, "Unauthorized"}` by default (or `:unauthorized_message` / `handle_unauthorized` if configured). |
+| Error customization | `handle_unauthorized` and `handle_not_found` override default error tuples. |
 
 ## Community & support
 

@@ -85,6 +85,9 @@ defmodule Permit.Absinthe do
   Use this to tell Permit which Ecto schema a GraphQL type represents,
   what action to authorize, or customize how resources are loaded.
 
+  It is a thin wrapper around Absinthe's `meta/1` macro, equivalent to
+  `meta permit: [...], authorization_module: ...`.
+
   Map a type to a schema:
 
       object :article do
