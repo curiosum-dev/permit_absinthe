@@ -217,11 +217,12 @@ defmodule Permit.Absinthe do
         [Absinthe.Middleware.Dataloader | Absinthe.Plugin.defaults()]
       end
 
-  And add the dataloader setup middleware to fields that use it:
+  `authorized_dataloader/3` now self-initializes the dataloader source per field,
+  so in most cases you only need:
 
-      field :post, :post do
+      field :comments, list_of(:comment) do
         permit action: :read
-        middleware Permit.Absinthe.Middleware.DataloaderSetup
+        resolve &authorized_dataloader/3
       end
   """
 

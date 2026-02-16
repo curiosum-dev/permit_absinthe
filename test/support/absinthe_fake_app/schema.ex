@@ -255,8 +255,6 @@ defmodule Permit.AbsintheFakeApp.Schema do
     end
 
     field :me, :user do
-      middleware(Permit.Absinthe.Middleware.DataloaderSetup)
-
       permit(action: :read)
 
       resolve(fn _, _, %{context: %{current_user: current_user}} ->

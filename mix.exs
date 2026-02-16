@@ -59,8 +59,7 @@ defmodule Permit.Absinthe.MixProject do
           Permit.Absinthe.Middleware.LoadAndAuthorize
         ],
         Dataloader: [
-          Permit.Absinthe.Resolvers.Dataloader,
-          Permit.Absinthe.Middleware.DataloaderSetup
+          Permit.Absinthe.Resolvers.Dataloader
         ],
         "Schema setup": [
           Permit.Absinthe.Schema.Meta,
