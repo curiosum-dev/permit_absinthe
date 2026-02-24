@@ -472,6 +472,6 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
   defp create_action?(action, authorization_module) do
     actions_module = authorization_module.actions_module()
     grouping = actions_module.grouping_schema()
-    action == :create or :create in (Map.get(grouping, action) || [])
+    action == :create or :create in Map.get(grouping, action, [])
   end
 end
