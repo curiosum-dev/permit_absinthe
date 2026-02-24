@@ -43,7 +43,7 @@ defmodule Permit.Absinthe.Schema.Prototype do
           _ -> :one
         end
 
-      %{node | middleware: [{Permit.Absinthe.Middleware.LoadAndAuthorize, arity} | existing]}
+      %{node | middleware: [{Permit.Absinthe.Middleware, arity} | existing]}
     end)
   end
 end

@@ -56,7 +56,7 @@ defmodule Permit.Absinthe.MixProject do
       groups_for_modules: [
         "Load & Authorize": [
           Permit.Absinthe.Resolvers.LoadAndAuthorize,
-          Permit.Absinthe.Middleware.LoadAndAuthorize
+          Permit.Absinthe.Middleware
         ],
         Dataloader: [
           Permit.Absinthe.Resolvers.Dataloader
