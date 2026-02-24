@@ -156,28 +156,32 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
 
     subject = fetch_subject(resolution_context, field_meta)
 
-    if is_nil(subject) do
-      handle_unauthorized(resolution_context, field_meta)
-    else
-      arity = determine_arity(resolution)
+    # For create actions there is no existing record to load, so we check
+    # authorization against a blank struct. This ensures field-level conditions
+    # (e.g. owner_id: user.id) are evaluated against nil rather than bypassed
+    # by the module-atom shortcut in ParsedCondition.satisfied?/3, which
+    # would otherwise allow any conditioned rule to pass unconditionally.
+    cond do
+      is_nil(subject) ->
+        handle_unauthorized(resolution_context, field_meta)
 
-      case authorize_and_load(
-             subject,
-             authorization_module,
-             module,
-             action,
-             resolution_context,
-             arity
-           ) do
-        {:authorized, resource} ->
-          wrap_authorized_response(resource, field_meta, resolution_context.resolution)
+      create_action?(action, authorization_module) ->
+        blank = module.__struct__()
 
-        :unauthorized ->
+        if authorization_module.resolver_module().authorized?(subject, authorization_module, blank, action) do
+          wrap_authorized_response(nil, field_meta, resolution_context.resolution)
+        else
           handle_unauthorized(resolution_context, field_meta)
+        end
 
-        :not_found ->
-          handle_not_found(resolution_context, field_meta)
-      end
+      true ->
+        arity = determine_arity(resolution)
+
+        case authorize_and_load(subject, authorization_module, module, action, resolution_context, arity) do
+          {:authorized, resource} -> wrap_authorized_response(resource, field_meta, resolution_context.resolution)
+          :unauthorized -> handle_unauthorized(resolution_context, field_meta)
+          :not_found -> handle_not_found(resolution_context, field_meta)
+        end
     end
   end
 
@@ -460,4 +464,14 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
   defp has_list_type?(%Absinthe.Type.List{}), do: true
   defp has_list_type?(%{of_type: inner_type}), do: has_list_type?(inner_type)
   defp has_list_type?(_), do: false
+
+  # Create actions have no pre-existing record to load — authorization is a
+  # pure capability check on the resource module, not a record instance.
+  # We detect this by checking if the action is :create or is defined in the
+  # grouping schema as requiring :create (e.g. a custom :new action that maps to :create).
+  defp create_action?(action, authorization_module) do
+    actions_module = authorization_module.actions_module()
+    grouping = actions_module.grouping_schema()
+    action == :create or :create in Map.get(grouping, action, [])
+  end
 end
