@@ -46,7 +46,7 @@ defmodule Permit.Absinthe do
 
       field :update_post, :post do
         permit action: :update
-        middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+        middleware Permit.Absinthe.Middleware
         resolve fn _, args, %{context: %{loaded_resource: post}} ->
           # post is already loaded and authorized
           MyApp.Blog.update_post(post, args)

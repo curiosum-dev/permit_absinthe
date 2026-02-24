@@ -64,7 +64,7 @@ Here's a quick table outlining which feature you should pick when plugging in Pe
 | If you need... | Use | Why |
 |---|---|---|
 | Simple query resolver | `resolve &load_and_authorize/2` | Lowest boilerplate for standard resource reads |
-| &bull; Query resolver + custom processing<br>&bull; Mutation  | `Permit.Absinthe.Middleware.LoadAndAuthorize` | Keeps full resolver control while reusing Permit loading/authorization |
+| &bull; Query resolver + custom processing<br>&bull; Mutation  | `Permit.Absinthe.Middleware` | Keeps full resolver control while reusing Permit loading/authorization |
 | Association loading | `resolve &authorized_dataloader/3` | Preserves Dataloader batching and enforces Permit rules |
 | Authorization declared explicitly in schema directives | `directives: [:load_and_authorize]` | Makes authorization behavior more visible at schema level |
 | Non-standard authorization or loading flow | Vanilla Permit calls inside your resolver | Maximum flexibility for advanced/custom cases |
@@ -164,7 +164,7 @@ end
 
 ### Load & authorize using Absinthe Middleware
 
-In mutations, or when custom and more complex resolution logic is required, the `Permit.Absinthe.Middleware.LoadAndAuthorize` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
+In mutations, or when custom and more complex resolution logic is required, the `Permit.Absinthe.Middleware` can be used, preloading the resource (or list of resources) into `context`, which then can be consumed in a custom Absinthe resolver function.
 
 ```elixir
   query do
@@ -172,7 +172,7 @@ In mutations, or when custom and more complex resolution logic is required, the 
     field :articles, list_of(:article) do
       permit action: :read
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+      middleware Permit.Absinthe.Middleware
 
       resolve(fn _parent, _args, %{context: context} = _resolution ->
         # ...
@@ -188,7 +188,7 @@ In mutations, or when custom and more complex resolution logic is required, the 
     field :article, :article do
       permit action: :read
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+      middleware Permit.Absinthe.Middleware
 
       arg :id, non_null(:id)
 
@@ -211,7 +211,7 @@ In mutations, or when custom and more complex resolution logic is required, the 
       arg(:name, non_null(:string))
       arg(:content, non_null(:string))
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+      middleware Permit.Absinthe.Middleware
 
       resolve(fn _, %{name: name, content: content}, %{context: context} ->
         case Blog.Content.update_article(context.loaded_resource, %{name: name, content: content}) do

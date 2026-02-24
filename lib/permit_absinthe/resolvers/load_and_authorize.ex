@@ -78,7 +78,7 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
 
   ## Usage as middleware
 
-  For mutations, pair `Permit.Absinthe.Middleware.LoadAndAuthorize` with a
+  For mutations, pair `Permit.Absinthe.Middleware` with a
   custom resolver. The middleware loads and authorizes the resource using
   the `load_and_authorize/2` resolver function, then places it in the context
   as `:loaded_resource` (single) or `:loaded_resources` (list):
@@ -92,7 +92,7 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
       arg :id, non_null(:id)
       arg :title, :string
 
-      middleware Permit.Absinthe.Middleware.LoadAndAuthorize
+      middleware Permit.Absinthe.Middleware
 
       resolve fn _, args, %{context: %{loaded_resource: post}} ->
         MyApp.Blog.update_post(post, args)
@@ -168,7 +168,12 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
       create_action?(action, authorization_module) ->
         blank = module.__struct__()
 
-        if authorization_module.resolver_module().authorized?(subject, authorization_module, blank, action) do
+        if authorization_module.resolver_module().authorized?(
+             subject,
+             authorization_module,
+             blank,
+             action
+           ) do
           wrap_authorized_response(nil, field_meta, resolution_context.resolution)
         else
           handle_unauthorized(resolution_context, field_meta)
@@ -177,10 +182,22 @@ defmodule Permit.Absinthe.Resolvers.LoadAndAuthorize do
       true ->
         arity = determine_arity(resolution)
 
-        case authorize_and_load(subject, authorization_module, module, action, resolution_context, arity) do
-          {:authorized, resource} -> wrap_authorized_response(resource, field_meta, resolution_context.resolution)
-          :unauthorized -> handle_unauthorized(resolution_context, field_meta)
-          :not_found -> handle_not_found(resolution_context, field_meta)
+        case authorize_and_load(
+               subject,
+               authorization_module,
+               module,
+               action,
+               resolution_context,
+               arity
+             ) do
+          {:authorized, resource} ->
+            wrap_authorized_response(resource, field_meta, resolution_context.resolution)
+
+          :unauthorized ->
+            handle_unauthorized(resolution_context, field_meta)
+
+          :not_found ->
+            handle_not_found(resolution_context, field_meta)
         end
     end
   end

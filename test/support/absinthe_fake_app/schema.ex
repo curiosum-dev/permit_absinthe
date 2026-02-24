@@ -558,7 +558,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
 
       permit(action: :update)
 
-      middleware(Permit.Absinthe.Middleware.LoadAndAuthorize)
+      middleware(Permit.Absinthe.Middleware)
 
       resolve(fn _,
                  %{permission_level: permission_level, thread_name: thread_name},
@@ -576,7 +576,7 @@ defmodule Permit.AbsintheFakeApp.Schema do
         handle_unauthorized: &create_item_with_custom_options_unauthorized/1
       )
 
-      middleware(Permit.Absinthe.Middleware.LoadAndAuthorize)
+      middleware(Permit.Absinthe.Middleware)
 
       resolve(fn args, %{context: %{current_user: current_user}} ->
         if current_user do
