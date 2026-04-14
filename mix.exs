@@ -14,6 +14,7 @@ defmodule Permit.Absinthe.MixProject do
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: docs(),
+      dialyzer: [plt_add_apps: [:ex_unit, :mix]],
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -41,7 +42,15 @@ defmodule Permit.Absinthe.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false}
-    ]
+    ] ++ igniter_dep()
+  end
+
+  defp igniter_dep do
+    if Version.match?(System.version(), ">= 1.15.0") do
+      [{:igniter, "~> 0.5", optional: true}]
+    else
+      []
+    end
   end
 
   defp docs do
