@@ -84,25 +84,7 @@ if Version.match?(System.version(), ">= 1.15.0") and Code.ensure_loaded?(Igniter
         "use Permit.Absinthe, authorization_module: #{inspect(authorization_module)}"
 
       case ProjectModule.find_and_update_module(igniter, schema_module, fn zipper ->
-             case find_use_call(zipper, Permit.Absinthe) do
-               {:ok, _} ->
-                 {:ok, zipper}
-
-               :error ->
-                 case find_use_call(zipper, Absinthe.Schema) do
-                   {:ok, use_zipper} ->
-                     {:ok, Common.add_code(use_zipper, use_code, placement: :after)}
-
-                   :error ->
-                     {:warning,
-                      """
-                      Could not find `use Absinthe.Schema` in #{inspect(schema_module)}.
-                      Please add the following manually:
-
-                          #{use_code}
-                      """}
-                 end
-             end
+             inject_use_permit_absinthe(zipper, schema_module, use_code)
            end) do
         {:ok, igniter} ->
           igniter
@@ -114,6 +96,29 @@ if Version.match?(System.version(), ">= 1.15.0") and Code.ensure_loaded?(Igniter
 
               #{use_code}
           """)
+      end
+    end
+
+    defp inject_use_permit_absinthe(zipper, schema_module, use_code) do
+      case find_use_call(zipper, Permit.Absinthe) do
+        {:ok, _} -> {:ok, zipper}
+        :error -> inject_after_absinthe_schema(zipper, schema_module, use_code)
+      end
+    end
+
+    defp inject_after_absinthe_schema(zipper, schema_module, use_code) do
+      case find_use_call(zipper, Absinthe.Schema) do
+        {:ok, use_zipper} ->
+          {:ok, Common.add_code(use_zipper, use_code, placement: :after)}
+
+        :error ->
+          {:warning,
+           """
+           Could not find `use Absinthe.Schema` in #{inspect(schema_module)}.
+           Please add the following manually:
+
+               #{use_code}
+           """}
       end
     end
 
