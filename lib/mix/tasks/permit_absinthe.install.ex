@@ -1,4 +1,4 @@
-if Version.match?(System.version(), ">= 1.15.0") and Code.ensure_loaded?(Igniter) do
+if Code.ensure_loaded?(Igniter) do
   defmodule Mix.Tasks.PermitAbsinthe.Install do
     @shortdoc "Installs Permit.Absinthe authorization into your project"
 

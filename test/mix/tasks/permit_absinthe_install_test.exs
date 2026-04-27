@@ -1,4 +1,4 @@
-if Version.match?(System.version(), ">= 1.15.0") and Code.ensure_loaded?(Igniter.Test) do
+if Code.ensure_loaded?(Igniter.Test) do
   defmodule Mix.Tasks.PermitAbsinthe.InstallTest do
     use ExUnit.Case
 

@@ -41,16 +41,9 @@ defmodule Permit.Absinthe.MixProject do
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.18", only: :test, runtime: false}
-    ] ++ igniter_dep()
-  end
-
-  defp igniter_dep do
-    if Version.match?(System.version(), ">= 1.15.0") do
-      [{:igniter, "~> 0.5", optional: true}]
-    else
-      []
-    end
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
+      {:igniter, "~> 0.5", only: [:dev, :test], runtime: false}
+    ]
   end
 
   defp docs do
