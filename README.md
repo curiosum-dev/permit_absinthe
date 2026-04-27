@@ -20,14 +20,51 @@ Permit.Absinthe provides integration between the [Permit](https://hexdocs.pm/per
 
 ## Installation
 
-If [available in Hex](https://hex.pm/docs/publish), the package can be installed
-by adding `permit_absinthe` to your list of dependencies in `mix.exs`:
+### Using Igniter (recommended)
+
+If you use [Igniter](https://hex.pm/packages/igniter) for project setup, add `permit_absinthe` and `igniter` to your deps and run:
+
+```bash
+mix permit_absinthe.install
+```
+
+This patches your Absinthe schema module to add `use Permit.Absinthe` automatically.
+
+**Options:**
+
+| Option | Description | Default |
+|---|---|---|
+| `--authorization-module` | Authorization module name | `<MyApp>.Authorization` |
+| `--schema-module` | Absinthe schema module to patch | `<MyApp>Web.Schema` |
+
+Example with options:
+
+```bash
+mix permit_absinthe.install \
+  --authorization-module MyApp.Auth \
+  --schema-module MyAppWeb.GraphqlSchema
+```
+
+### Manual installation
+
+Add `permit_absinthe` to your list of dependencies in `mix.exs`:
 
 ```elixir
 def deps do
   [
     {:permit_absinthe, "~> 0.2.0"}
   ]
+end
+```
+
+Then add `use Permit.Absinthe` to your Absinthe schema module:
+
+```elixir
+defmodule MyAppWeb.Schema do
+  use Absinthe.Schema
+  use Permit.Absinthe, authorization_module: MyApp.Authorization
+
+  # ...
 end
 ```
 
