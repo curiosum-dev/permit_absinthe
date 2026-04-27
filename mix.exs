@@ -14,7 +14,7 @@ defmodule Permit.Absinthe.MixProject do
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: docs(),
-      dialyzer: [plt_add_apps: [:ex_unit, :mix]],
+      dialyzer: [plt_add_apps: [:ex_unit, :mix, :igniter]],
       test_coverage: [tool: ExCoveralls]
     ]
   end
