@@ -14,6 +14,7 @@ defmodule Permit.Absinthe.MixProject do
       package: package(),
       elixirc_paths: elixirc_paths(Mix.env()),
       docs: docs(),
+      dialyzer: [plt_add_apps: [:ex_unit, :mix, :igniter]],
       test_coverage: [tool: ExCoveralls]
     ]
   end
@@ -40,7 +41,8 @@ defmodule Permit.Absinthe.MixProject do
       {:ex_doc, ">= 0.0.0", only: :dev, runtime: false},
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
-      {:excoveralls, "~> 0.18", only: :test, runtime: false}
+      {:excoveralls, "~> 0.18", only: :test, runtime: false},
+      {:igniter, "~> 0.5", only: [:dev, :test], runtime: false}
     ]
   end
 
