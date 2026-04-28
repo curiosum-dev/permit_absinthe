@@ -2,7 +2,7 @@ defmodule Permit.Absinthe.MixProject do
   use Mix.Project
 
   @source_url "https://github.com/curiosum-dev/permit_absinthe"
-  @version "0.2.1"
+  @version "0.3.0"
 
   def project do
     [
@@ -33,8 +33,8 @@ defmodule Permit.Absinthe.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:permit, "~> 0.3.3"},
-      {:permit_ecto, "~> 0.2.4"},
+      {:permit, "~> 0.4.0"},
+      {:permit_ecto, "~> 0.3.0"},
       {:absinthe, "~> 1.7"},
       {:dataloader, "~> 2.0"},
       {:postgrex, "~> 0.21", only: :test},
