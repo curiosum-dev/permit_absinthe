@@ -33,8 +33,8 @@ defmodule Permit.Absinthe.MixProject do
   # Run "mix help deps" to learn about dependencies.
   defp deps do
     [
-      {:permit, "~> 0.4.0"},
-      {:permit_ecto, "~> 0.3.0"},
+      {:permit, "~> 0.4.1"},
+      {:permit_ecto, "~> 0.3.1"},
       {:absinthe, "~> 1.7"},
       {:dataloader, "~> 2.0"},
       {:postgrex, "~> 0.21", only: :test},
@@ -42,7 +42,7 @@ defmodule Permit.Absinthe.MixProject do
       {:dialyxir, "~> 1.4", only: [:dev, :test], runtime: false},
       {:credo, "~> 1.7", only: [:dev, :test], runtime: false},
       {:excoveralls, "~> 0.18", only: :test, runtime: false},
-      {:igniter, "~> 0.5", only: [:dev, :test], runtime: false}
+      {:igniter, "~> 0.5", optional: true, runtime: false}
     ]
   end
 
